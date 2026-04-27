@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+service NewsAnalyzeService {
+    rpc GetLatestNews(LatestNewsReq) returns (LatestNewsResp);
+    rpc GetInstrumentSentiment(InstrumentReq) returns (InstrumentResp);
+}
+
+message LatestNewsReq {
+    int32 minutes = 1;    // 最近N分钟新闻
+}
+
+message NewsItem {
+    string title = 1;
+    string content = 2;
+    string publish_time = 3;
+    float sentiment = 4;
+    string summary = 5;
+    string related_instruments = 6;
+}
+
+message LatestNewsResp {
+    bool success = 1;
+    string msg = 2;
+    repeated NewsItem news = 3;
+}
+
+message InstrumentReq {
+    string instrument = 1;  // 如 p2509
+    int32 minutes = 2;
+}
+
+message InstrumentResp {
+    bool success = 1;
+    float avg_sentiment = 2;  // 平均情绪
+    int32 news_count = 3;
+    repeated NewsItem news = 4;
+}
