@@ -9,8 +9,8 @@ link_directories(${PROJECT_SOURCE_DIR}/api/lib)
 
 add_executable(futures_trader
     src/main.cpp
-    src/TraderSpi.cpp
-    src/MdSpi.cpp
+    src/trader_spi.cpp
+    src/md_spi.cpp
     src/Logger.cpp
 )
 
