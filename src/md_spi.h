@@ -2,6 +2,7 @@
 #include "ThostFtdcMdApi.h"
 #include "Logger.h"
 
+
 class CMdSpi : public CThostFtdcMdSpi {
 private:
     CThostFtdcMdApi* m_api;

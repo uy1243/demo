@@ -1,4 +1,10 @@
 #include "md_spi.h"
+#include "analyze/cal.hpp"
+
+#include <unordered_map>
+
+// 全局：所有合约的日内数据
+inline std::unordered_map<std::string, InstrumentData> g_instr_data;
 
 CMdSpi::CMdSpi(const char* broker, const char* user, const char* pass)
     : m_broker(broker), m_user(user), m_pass(pass) {
@@ -38,12 +44,30 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField* pLogin, CThostFtdcRspIn
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField* pData) {
-    LOG_INFO("%s | 最新价:%.2f | 买一:%.2f 卖一:%.2f | 成交量:%d",
+    if (!pData) return;
+
+    // 1. 构建内存数据
+    MarketData md;
+    md.instrument_id = pData->InstrumentID;
+    md.last_price = pData->LastPrice;
+    md.bid_price1 = pData->BidPrice1;
+    md.ask_price1 = pData->AskPrice1;
+    md.volume = pData->Volume;
+    md.timestamp = time(nullptr);
+
+    // 2. 存入内存（自动按合约区分）
+    g_instr_data[pData->InstrumentID].add(md);
+
+    // 3. 实时输出统计
+    auto& stat = g_instr_data[pData->InstrumentID];
+    LOG_INFO("%s | 最新价:%.2f | 均价:%.2f | 最高:%.2f | 最低:%.2f | 数量:%d",
         pData->InstrumentID,
         pData->LastPrice,
-        pData->BidPrice1,
-        pData->AskPrice1,
-        pData->Volume);
+        stat.avg_price(),   // 实时均值
+        stat.high(),
+        stat.low(),
+        stat.count()
+    );
 }
 
 // ===================== 【补齐】你缺少的函数！解决 LNK2001 =====================
