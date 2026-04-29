@@ -28,7 +28,7 @@ add_executable(futures_trader
     src/trader_spi.cpp
     src/md_spi.cpp
     src/Logger.cpp
-)
+ "src/analzye/cal.cpp")
 
 # 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader
