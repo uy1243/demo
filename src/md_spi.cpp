@@ -31,7 +31,7 @@ void CMdSpi::OnFrontDisconnected(int nReason) {
 
 void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField* pLogin, CThostFtdcRspInfoField* pRspInfo, int nId, bool bLast) {
     if (pRspInfo && pRspInfo->ErrorID != 0) {
-        LOG_ERR("行情登录失败:%s", pRspInfo->ErrorMsg);
+        LOG_ERR("行情登录失败:%s", GbkToUtf8(pRspInfo->ErrorMsg));
         return;
     }
     LOG_INFO("行情登录成功");

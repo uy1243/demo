@@ -1,5 +1,6 @@
 #include "Logger.h"
 
+
 void log_write(const char* level, const char* format, ...) {
     char buf[1024];
     time_t t = time(NULL);

@@ -3,6 +3,12 @@
 
 #ifdef _WIN32
 #include <windows.h>
+// 👇 加上这一行，解决中文乱码
+#pragma comment(linker, "/ENTRY:mainCRTStartup")
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -13,11 +19,15 @@
 #define PASSWORD   "0000000000000000"   // 改成你自己的 SimNow 密码
 
 // SimNow 7x24 小时行情/交易地址（最稳定）
-#define MD_ADDR    "tcp://180.168.102.228:41213"   // 行情
-#define TD_ADDR    "tcp://180.168.102.228:41205"   // 交易
+#define MD_ADDR    "tcp://182.254.243.31:40011"   // 行情
+#define TD_ADDR    "tcp://182.254.243.31:40001"   // 交易
 // ====================================================================
 
 int main() {
+#ifdef _WIN32
+    // 解决 Windows 控制台中文乱码
+    system("chcp 65001");
+#endif
     // 启动行情
     CMdSpi md(BROKER_ID, USER_ID, PASSWORD);
     md.connect(MD_ADDR);
