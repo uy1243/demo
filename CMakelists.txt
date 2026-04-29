@@ -1,12 +1,28 @@
 cmake_minimum_required(VERSION 3.10)
 project(futures_ctp)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Wno-unused-variable")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(${PROJECT_SOURCE_DIR}/api)
-link_directories(${PROJECT_SOURCE_DIR}/api/lib)
+# VS 关闭安全警告（必须）
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_compile_options(/wd4828)
+endif()
 
+# 头文件目录
+include_directories(
+    ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows
+    ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
+)
+
+# 库目录
+link_directories(
+    ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows
+    ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
+)
+
+# 生成可执行文件
 add_executable(futures_trader
     src/main.cpp
     src/trader_spi.cpp
@@ -14,9 +30,25 @@ add_executable(futures_trader
     src/Logger.cpp
 )
 
+# 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader
-    thosttraderapi
-    thostmduserapi
-    pthread
-    dl
+    thosttraderapi_se
+    thostmduserapi_se
 )
+
+# ====================== 关键修复：只在 Linux 链接 pthread 和 dl ======================
+if(UNIX AND NOT APPLE)
+    find_package(Threads REQUIRED)
+    target_link_libraries(futures_trader
+        Threads::Threads
+        dl
+    )
+endif()
+
+# Windows 自动复制 CTP DLL 到运行目录
+if(MSVC)
+    file(COPY
+        ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows/thosttraderapi_se.dll
+        ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows/thostmduserapi_se.dll
+        DESTINATION ${CMAKE_BINARY_DIR})
+endif()

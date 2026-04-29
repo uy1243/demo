@@ -20,6 +20,7 @@ public:
     void query_position();
 
     virtual void OnFrontConnected();
+    virtual void OnFrontDisconnected(int nReason);
     virtual void OnRspUserLogin(CThostFtdcRspUserLoginField*, CThostFtdcRspInfoField*, int, bool);
     virtual void OnRspOrderInsert(CThostFtdcInputOrderField*, CThostFtdcRspInfoField*, int, bool);
     virtual void OnRtnOrder(CThostFtdcOrderField*);
