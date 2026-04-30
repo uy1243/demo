@@ -29,7 +29,7 @@ add_executable(futures_trader
     "src/datasource/trader_spi.cpp"
     "src/datasource/md_spi.cpp"
     src/log/Logger.cpp
-     "src/datasource/isource.h")
+     "src/datasource/isource.h" "src/datasource/ctp.cpp" "src/datasource/sina.h")
 
 # 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader
