@@ -21,6 +21,10 @@ void CMdSpi::subscribe(const char** instrs, int count) {
     m_api->SubscribeMarketData((char**)instrs, count);
 }
 
+void CMdSpi::run() {
+    LOG_INFO("runing...");
+    m_api->Join();
+}
 // ===================== 已实现 =====================
 void CMdSpi::OnFrontConnected() {
     LOG_INFO("行情前置连接成功");
@@ -44,7 +48,10 @@ void CMdSpi::OnRspUserLogin(CThostFtdcRspUserLoginField* pLogin, CThostFtdcRspIn
 }
 
 void CMdSpi::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField* pData) {
-    if (!pData) return;
+    if (!pData) {
+        LOG_ERR("数据为空");
+        return;
+    }
 
     // 1. 构建内存数据
     MarketData md;

@@ -14,6 +14,7 @@ endif()
 include_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows
     ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
+    ${PROJECT_SOURCE_DIR}/src/
 )
 
 # 库目录
@@ -25,10 +26,10 @@ link_directories(
 # 生成可执行文件
 add_executable(futures_trader
     src/main.cpp
-    src/trader_spi.cpp
-    src/md_spi.cpp
-    src/Logger.cpp
- "src/analzye/cal.hpp")
+    "src/datasource/trader_spi.cpp"
+    "src/datasource/md_spi.cpp"
+    src/log/Logger.cpp
+     "src/datasource/isource.h")
 
 # 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader

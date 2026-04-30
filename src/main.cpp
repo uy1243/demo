@@ -1,5 +1,6 @@
-#include "md_spi.h"
-#include "trader_spi.h"
+#include "datasource/md_spi.h"
+#include "datasource/trader_spi.h"
+#include "log/logger.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -31,16 +32,23 @@ int main() {
     // 启动行情
     CMdSpi md(BROKER_ID, USER_ID, PASSWORD);
     md.connect(MD_ADDR);
-
 #ifdef _WIN32
-    Sleep(1000);
+    Sleep(2000);
 #else
     usleep(1000000);
 #endif
 
     // 订阅合约（SimNow 支持所有合约）
-    const char* instrs[] = { "rb2510", "p2509", "ma2509", "cu2509", "au2506" };
+    const char* instrs[] = { "rb2609" };
     md.subscribe(instrs, sizeof(instrs) / sizeof(const char*));
+
+#ifdef _WIN32
+    Sleep(2000);
+#else
+    usleep(1000000);
+#endif
+    md.run();
+    LOG_INFO("end connect md");
 
     // 启动交易
     CTraderSpi td(BROKER_ID, USER_ID, PASSWORD);

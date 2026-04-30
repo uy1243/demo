@@ -1,6 +1,8 @@
 #pragma once
 #include "ThostFtdcMdApi.h"
-#include "Logger.h"
+#include "log/logger.h"
+#include <thread>  // 加线程
+
 
 
 class CMdSpi : public CThostFtdcMdSpi {
@@ -10,10 +12,13 @@ private:
     const char* m_user;
     const char* m_pass;
 
+
 public:
     CMdSpi(const char* broker, const char* user, const char* pass);
     void connect(const char* addr);
     void subscribe(const char** instrs, int count);
+    void run(); // 只加这一个函数
+
 
     // ===================== 回调函数（全部声明，不缺一个） =====================
     virtual void OnFrontConnected();

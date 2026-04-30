@@ -1,6 +1,6 @@
 #pragma once
 #include "ThostFtdcTraderApi.h"
-#include "Logger.h"
+#include "log/logger.h"
 
 class CTraderSpi : public CThostFtdcTraderSpi {
 private:
