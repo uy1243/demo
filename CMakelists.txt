@@ -10,6 +10,16 @@ if(MSVC)
     add_compile_options(/wd4828)
 endif()
 
+set(MYSQL_DIR "C:/Program Files/MySQL/MySQL Connector C++ 9.7")
+include_directories(${MYSQL_DIR}/include)
+link_directories(${MYSQL_DIR}/lib64)
+message(STATUS "MySQL include dir: ${MYSQL_DIR}/include")
+set(MYSQL_INCLUDE "C:/Program Files/MySQL/MySQL Server 8.0/include")
+set(MYSQL_LIB_DIR "C:/Program Files/MySQL/MySQL Server 8.0/lib")
+
+include_directories(${MYSQL_INCLUDE})
+link_directories(${MYSQL_LIB_DIR})
+
 # 头文件目录
 include_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows
@@ -23,13 +33,15 @@ link_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
 )
 
+add_subdirectory(src/datasource)
+add_subdirectory(src/gui_operator)
 # 生成可执行文件
 add_executable(futures_trader
     src/main.cpp
-    "src/datasource/trader_spi.cpp"
-    "src/datasource/md_spi.cpp"
+    "src/datasource/ctp/trader_spi.cpp"
+    "src/datasource/ctp/md_spi.cpp"
     src/log/Logger.cpp
-     "src/datasource/isource.h" "src/datasource/ctp.cpp" "src/datasource/sina.h")
+     "src/datasource/isource.h" "src/datasource/ctp/ctp.cpp" "src/datasource/sina/sina.h" "src/datasource/persistent/add.cpp")
 
 # 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader

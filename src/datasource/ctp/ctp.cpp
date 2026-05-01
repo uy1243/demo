@@ -1,5 +1,5 @@
 #pragma once
-#include "imarket_data_source.hpp"
+#include "datasource/isource.h"
 #include "ThostFtdcMdApi.h"
 
 class CtpMarket : public IMarketDataSource, public CThostFtdcMdSpi

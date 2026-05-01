@@ -1,5 +1,5 @@
-#include "datasource/md_spi.h"
-#include "datasource/trader_spi.h"
+#include "datasource/ctp/md_spi.h"
+#include "datasource/ctp/trader_spi.h"
 #include "log/logger.h"
 
 #ifdef _WIN32
