@@ -3,13 +3,13 @@
 #include <iostream>
 #include "mysqlx/xdevapi.h"
 
-using namespace std;
 using namespace mysqlx;
+using namespace std;
 
 class MySQLDB
 {
 public:
-    bool connect(const std::string& host, const string& user, const string& pwd, const string& dbname)
+    bool connect(const std::string& host, const std::string& user, const std::string& pwd, const std::string& dbname)
     {
         try {
             sess = new Session(host, 3306, user, pwd);
@@ -24,7 +24,7 @@ public:
 
     // 插入行情数据
     void insert_tick(
-        const string& instrument,
+        const std::string& instrument,
         double last,
         double bid1,
         double ask1,

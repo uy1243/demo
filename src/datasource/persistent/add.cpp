@@ -13,5 +13,12 @@ void save_tick_to_db(MySQLDB& db, const TickData& tick)
         tick.ask_price1,
         tick.volume
     );
-    db.execute(sql);
+	db.insert_tick(tick.instrument_id, tick.last_price, tick.bid_price1, tick.ask_price1, tick.volume);
+}
+
+int main()
+{
+    MySQLDB db;
+
+    return 0;
 }
