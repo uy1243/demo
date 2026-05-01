@@ -22,7 +22,6 @@ void CMdSpi::subscribe(const char** instrs, int count) {
 }
 
 void CMdSpi::run() {
-    LOG_INFO("runing...");
     m_api->Join();
 }
 // ===================== 已实现 =====================

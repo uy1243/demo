@@ -1,3 +1,4 @@
 add_executable(gui_exe
-    win_oper.cpp
+    "win32_auto.cpp"
+    ../log/logger.cpp
     )
