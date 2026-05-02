@@ -1,5 +1,5 @@
 ﻿#include "win32_auto.hpp"
-#include <log/logger.h>
+#include <utils/logger.h>
 
 HWND Win32Auto::find_window(const std::wstring& title) {
     return FindWindowW(NULL, title.c_str());

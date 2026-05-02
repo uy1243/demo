@@ -1,6 +1,6 @@
 #include "datasource/ctp/md_spi.h"
 #include "datasource/ctp/trader_spi.h"
-#include "log/logger.h"
+#include "utils/logger.h"
 
 #include <windows.h>
 // 👇 加上这一行，解决中文乱码
@@ -9,8 +9,8 @@
 
 // ====================== SimNow 仿真环境标准配置 ======================
 #define BROKER_ID  "9999"          // SimNow 固定为 9999
-#define USER_ID    "simnow_client_test"   // 改成你自己的 SimNow 账号
-#define PASSWORD   "0000000000000000"   // 改成你自己的 SimNow 密码
+#define USER_ID    "150410" // "simnow_client_test"   // 改成你自己的 SimNow 账号
+#define PASSWORD   "$rfv5tgb6yhn" //"0000000000000000"   // 改成你自己的 SimNow 密码
 
 // SimNow 7x24 小时行情/交易地址（最稳定）
 #define MD_ADDR    "tcp://182.254.243.31:40011"   // 行情

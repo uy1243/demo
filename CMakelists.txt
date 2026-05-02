@@ -23,22 +23,21 @@ link_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
 )
 
-add_subdirectory(src/datasource)
-add_subdirectory(src/gui_operator)
+
 # 生成可执行文件
 add_executable(futures_trader
     src/main.cpp
     "src/datasource/ctp/trader_spi.cpp"
     "src/datasource/ctp/md_spi.cpp"
-    src/log/Logger.cpp
-     "src/datasource/isource.h")
-
+)
 # 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader
     thosttraderapi_se
     thostmduserapi_se
 )
-
+add_subdirectory(src/datasource)
+add_subdirectory(src/gui_operator)
+add_subdirectory(src/strategy)
 # ====================== 关键修复：只在 Linux 链接 pthread 和 dl ======================
 if(UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)

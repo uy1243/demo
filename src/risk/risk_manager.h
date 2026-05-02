@@ -4,7 +4,6 @@
 #include <map>
 #include "OrderDef.h"
 #include "MySQLDB.h"
-#include "Logger.h"
 
 struct PositionRisk {
     std::string instrument;

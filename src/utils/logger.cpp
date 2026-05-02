@@ -1,5 +1,4 @@
-#include "Logger.h"
-
+#include "logger.h"
 
 void log_write(const char* level, const char* format, ...) {
     char buf[1024];

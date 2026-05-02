@@ -2,7 +2,6 @@
 #include <mysql/mysql.h>
 #include <string>
 #include <cstdio>
-#include "Logger.h"
 
 class MySQLDB {
 public:
