@@ -97,6 +97,15 @@ void Win32Auto::click(HWND btn) {
     Sleep(300);
 }
 
+void Win32Auto::get_settlement_info()
+{
+
+}
+
+void  Win32Auto::insert_order(const std::string& inst, char dir, char offset, double price, int vol)
+{
+
+}
 void auto_login() {
     HWND login_win = Win32Auto::find_window(L"连接至服务器");
     LOG_INFO("找到登录窗口: %p", login_win);

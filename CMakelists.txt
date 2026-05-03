@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(futures_ctp)
+project(trader)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,12 +9,23 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/wd4828)
 endif()
+set(RapidJSON_INCLUDE_DIR "C:/Users/naiyu/source/repos/uy1243/demo/vcpkg_installed/vcpkg/pkgs/rapidjson_x64-windows/include")
+set(MYSQL_PATH "C:/Program Files/MySQL/MySQL Connector C++ 9.7")
 
+add_definitions(-DCURL_STATICLIB)
+# 🔥 头文件路径（解决 C1083 错误）
+include_directories(${MYSQL_PATH}/include
+${RapidJSON_INCLUDE_DIR})
+
+# 🔥 库路径
+link_directories(${MYSQL_PATH}/lib64
+                ${MYSQL_PATH}/lib64/vs14/)
 # 头文件目录
 include_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows
     ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
     ${PROJECT_SOURCE_DIR}/src/
+    ${RapidJSON_INCLUDE_DIR}/
 )
 
 # 库目录
@@ -23,21 +34,25 @@ link_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
 )
 
-
+link_directories(${MYSQL_PATH}/lib64
+                ${MYSQL_PATH}/lib64/vs14/)
 # 生成可执行文件
-add_executable(futures_trader
+add_executable(trader
     src/main.cpp
-    "src/datasource/ctp/trader_spi.cpp"
-    "src/datasource/ctp/md_spi.cpp"
- "src/state_machine/account.h" "src/state_machine/account.cpp" "src/state_machine/account_view.cpp" "src/state_machine/main.cpp" "src/state_machine/monitor.h" "src/config/config.h" "src/config/config.cpp" "src/state_machine/monitor.cpp" "src/state_machine/settlement.h" "src/state_machine/settlement.cpp")
-# 链接 CTP 库（跨平台区分）
-target_link_libraries(futures_trader
+  "src/state_machine/account.cpp"
+ "src/state_machine/settlement.cpp"
+"src/datasource/https/market_data.cpp"
+src/strategy/market_analyzer.cpp
+src/utils/logger.cpp "src/datasource/mysql_db/db.hpp")
+
+target_link_libraries(trader PRIVATE 
     thosttraderapi_se
     thostmduserapi_se
+      mysqlcppconn
+    mysqlcppconnx
 )
-add_subdirectory(src/datasource)
-add_subdirectory(src/gui_operator)
-add_subdirectory(src/strategy)
+# add_subdirectory(src/datasource)
+# add_subdirectory(src/strategy)
 # ====================== 关键修复：只在 Linux 链接 pthread 和 dl ======================
 if(UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
@@ -49,6 +64,18 @@ endif()
 
 # Windows 自动复制 CTP DLL 到运行目录
 if(MSVC)
+
+set(MYSQL_BIN_DIR "${MYSQL_PATH}/lib64")
+
+    set(OUT_DIR "$<TARGET_FILE_DIR:trader>")
+
+    add_custom_command(TARGET trader POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconnx-2-vs14.dll" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${OUT_DIR}
+    )
+
     file(COPY
         ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows/thosttraderapi_se.dll
         ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows/thostmduserapi_se.dll

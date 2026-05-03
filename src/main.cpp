@@ -1,50 +1,40 @@
 #include "datasource/ctp/md_spi.h"
 #include "datasource/ctp/trader_spi.h"
 #include "utils/logger.h"
-
+#include "datasource/market_data.h"
+#include "state_machine/account.h"
+#include "strategy/strategy.h"
+#include "datasource/gui_operator/win32_auto.hpp"
+#include "strategy/market_analyzer.h"
+#include "datasource/mysql_db/db.hpp"
 #include <windows.h>
 // 👇 加上这一行，解决中文乱码
 #pragma comment(linker, "/ENTRY:mainCRTStartup")
 
-
-// ====================== SimNow 仿真环境标准配置 ======================
-#define BROKER_ID  "9999"          // SimNow 固定为 9999
-#define USER_ID    "150410" // "simnow_client_test"   // 改成你自己的 SimNow 账号
-#define PASSWORD   "$rfv5tgb6yhn" //"0000000000000000"   // 改成你自己的 SimNow 密码
-
-// SimNow 7x24 小时行情/交易地址（最稳定）
-#define MD_ADDR    "tcp://182.254.243.31:40011"   // 行情
-#define TD_ADDR    "tcp://182.254.243.31:40001"   // 交易
-// ====================================================================
-
 int main() {
     // 解决 Windows 控制台中文乱码
     system("chcp 65001");
-    // 启动行情
-    CMdSpi md(BROKER_ID, USER_ID, PASSWORD);
-    md.connect(MD_ADDR);
-    Sleep(2000);
-
-
-    // 订阅合约（SimNow 支持所有合约）
-    const char* instrs[] = { "rb2609" };
-    md.subscribe(instrs, sizeof(instrs) / sizeof(const char*));
-
-    Sleep(2000);
-
-    // 启动交易
-    CTraderSpi td(BROKER_ID, USER_ID, PASSWORD);
-    td.connect(TD_ADDR);
-
-    Sleep(1000);
-
-
-    // 查询持仓
-    td.query_position();
-
-    // 保持程序运行
+    get_one_second_random_quotes();
+    MysqlDB db;
+    // 创建分析类实例
+    MarketAnalyzer analyzer;
+    auto& acc = Account::Instance();
+    auto positons = acc.getAllPositions();
     while (true) {
-        Sleep(1000);
+        // 1. 生成行情 → 写入缓存
+        GenerateRandomDceQuote();
+        GenerateRandomCzceQuote();
+
+        // 2. 清屏 + 打印行情
+        system("cls");
+        PrintMarketCache();
+
+        // 3. 分析模块：从缓存读取并统计
+        analyzer.printAnalysis();
+        
+		db.getone();
+        // 每秒刷新
+        std::this_thread::sleep_for(std::chrono::seconds(20));
     }
 
     return 0;

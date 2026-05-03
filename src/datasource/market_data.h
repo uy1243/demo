@@ -65,5 +65,5 @@ std::vector<ExchangeQuote> get_czce_quotes_random(const std::string& commodity);
 // 生成模拟行情并写入全局缓存
 void GenerateRandomDceQuote();
 void GenerateRandomCzceQuote();
-
+void get_one_second_random_quotes();
 void PrintMarketCache();

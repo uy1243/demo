@@ -21,7 +21,7 @@ link_directories(${MYSQL_PATH}/lib64
 add_library(mysql_test
     persistent/add.cpp
     
- "main.cpp")
+ "ctp/ctp_test.cpp" "ctp/main.cpp")
 # 链接正确的库
 target_link_libraries(mysql_test PRIVATE
     mysqlcppconn
@@ -29,14 +29,14 @@ target_link_libraries(mysql_test PRIVATE
 )
 
 add_library(sina_test 
-sina/main.cpp
+"ctp/ctp_test.cpp"
     
- )
+  "ctp/main.cpp")
 
  add_executable(main_test 
     
     market_data.cpp
- "main.cpp")
+ "ctp/ctp_test.cpp" "ctp/main.cpp")
 
 target_link_libraries(sina_test PRIVATE CURL::libcurl)
 

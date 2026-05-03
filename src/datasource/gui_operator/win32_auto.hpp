@@ -39,4 +39,6 @@ public:
 
     // 12. 获取控件相对父窗口的坐标
     static POINT get_control_pos(HWND parent, HWND control);
+	void get_settlement_info();
+	void insert_order(const std::string& inst, char dir, char offset, double price, int vol);
 };

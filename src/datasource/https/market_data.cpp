@@ -1,4 +1,4 @@
-﻿#include "market_data.h"
+﻿#include "datasource/market_data.h"
 #include <windows.h>
 #include <winhttp.h>
 #include <string>
@@ -373,4 +373,10 @@ void PrintMarketCache()
                 q.instrument.c_str(), q.last, q.bid1, q.ask1, q.volume, q.time.c_str());
         }
     }
+}
+
+void get_one_second_random_quotes() {
+
+    GenerateRandomDceQuote();
+	GenerateRandomCzceQuote();
 }
