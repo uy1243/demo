@@ -29,7 +29,7 @@ add_executable(futures_trader
     src/main.cpp
     "src/datasource/ctp/trader_spi.cpp"
     "src/datasource/ctp/md_spi.cpp"
-)
+ "src/state_machine/account.h" "src/state_machine/account.cpp" "src/state_machine/account_view.cpp" "src/state_machine/main.cpp" "src/state_machine/monitor.h" "src/config/config.h" "src/config/config.cpp" "src/state_machine/monitor.cpp" "src/state_machine/settlement.h" "src/state_machine/settlement.cpp")
 # 链接 CTP 库（跨平台区分）
 target_link_libraries(futures_trader
     thosttraderapi_se

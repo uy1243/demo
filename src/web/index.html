@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>量化交易系统 - Web管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+            .card h3 {
+                margin-bottom: 12px;
+                color: #34495e;
+                font-size: 16px;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+            table th, table td {
+                padding: 8px 6px;
+                text-align: center;
+                border-bottom: 1px solid #eee;
+            }
+
+        .panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input, select, button {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #2d8cf0;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+            button.danger {
+                background: #ed4014;
+            }
+
+        .log-box {
+            height: 220px;
+            background: #1e1e1e;
+            color: #ccc;
+            padding: 10px;
+            font-size: 12px;
+            border-radius: 6px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="title">📈 量化交易管理系统</div>
+
+        <div class="grid">
+            <!-- 行情 -->
+            <div class="card">
+                <h3>实时行情</h3>
+                <table id="quoteTable">
+                    <tr><th>合约</th><th>最新</th><th>买一</th><th>卖一</th><th>时间</th></tr>
+                </table>
+            </div>
+
+            <!-- 资金 -->
+            <div class="card">
+                <h3>账户资金</h3>
+                <table id="fundTable">
+                    <tr><th>总权益</th><th>可用</th><th>持仓盈亏</th><th>冻结</th></tr>
+                </table>
+            </div>
+
+            <!-- K线 -->
+            <div class="card" style="grid-column: span 2;">
+                <h3>K线 (1分钟)</h3>
+                <canvas id="klineChart" height="220"></canvas>
+            </div>
+
+            <!-- 持仓 -->
+            <div class="card">
+                <h3>当前持仓</h3>
+                <table id="positionTable">
+                    <tr><th>合约</th><th>方向</th><th>手数</th><th>均价</th><th>盈亏</th></tr>
+                </table>
+            </div>
+
+            <!-- 订单 -->
+            <div class="card">
+                <h3>订单记录</h3>
+                <table id="orderTable">
+                    <tr><th>订单号</th><th>合约</th><th>方向</th><th>状态</th></tr>
+                </table>
+            </div>
+
+            <!-- 下单 -->
+            <div class="card" style="grid-column: span 2;">
+                <h3>手动下单</h3>
+                <div class="panel">
+                    <select id="inst">
+                        <option>m2509</option>
+                        <option>m2511</option>
+                        <option>SR2509</option>
+                        <option>SR2511</option>
+                    </select>
+                    <select id="dir">
+                        <option value="buy">买多</option>
+                        <option value="sell">卖空</option>
+                    </select>
+                    <input type="number" id="vol" placeholder="手数" value="1" style="width:80px">
+                    <button onclick="sendOrder()">下单</button>
+                </div>
+            </div>
+
+            <!-- 日志 -->
+            <div class="card" style="grid-column: span 2;">
+                <h3>系统日志</h3>
+                <div class="log-box" id="logBox"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var chart;
+        initChart();
+
+        // 每秒刷新
+        setInterval(updateAll, 1000);
+
+        function initChart() {
+        var ctx = document.getElementById('klineChart').getContext('2d');
+        chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+        labels: [],
+        datasets: [{
+        label: '价格',
+        data: [],
+        borderColor: '#2d8cf0',
+        backgroundColor: 'rgba(45,140,240,0.1)',
+        tension: 0.2,
+        fill: true
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false
+        }
+        });
+        }
+
+        function updateAll() {
+        $.getJSON('/api/market', function (d) {
+        fillQuote(d.quotes);
+        fillFund(d.fund);
+        fillPosition(d.positions);
+        fillOrder(d.orders);
+        updateChart(d.kline);
+        addLog(d.log);
+        });
+        }
+
+        function fillQuote(list) {
+        var html = '';
+        list.forEach(q => {
+        html += `<tr><td>${q.inst}</td><td>${q.last}</td><td>${q.bid}</td><td>${q.ask}</td><td>${q.time}</td></tr>`;
+        });
+        $('#quoteTable tr:gt(0)').remove();
+        $('#quoteTable').append(html);
+        }
+
+        function fillFund(f) {
+        var html = `<tr><td>${f.total}</td><td>${f.avail}</td><td>${f.pnl}</td><td>${f.frozen}</td></tr>`;
+        $('#fundTable tr:gt(0)').remove();
+        $('#fundTable').append(html);
+        }
+
+        function fillPosition(list) {
+        var html = '';
+        list.forEach(p => {
+        html += `<tr><td>${p.inst}</td><td>${p.dir}</td><td>${p.vol}</td><td>${p.avg}</td><td>${p.pnl}</td></tr>`;
+        });
+        $('#positionTable tr:gt(0)').remove();
+        $('#positionTable').append(html);
+        }
+
+        function fillOrder(list) {
+        var html = '';
+        list.forEach(o => {
+        html += `<tr><td>${o.id}</td><td>${o.inst}</td><td>${o.dir}</td><td>${o.status}</td></tr>`;
+        });
+        $('#orderTable tr:gt(0)').remove();
+        $('#orderTable').append(html);
+        }
+
+        function updateChart(k) {
+        if (!k) return;
+        chart.data.labels = k.time;
+        chart.data.datasets[0].data = k.close;
+        chart.update();
+        }
+
+        function sendOrder() {
+        var inst = $('#inst').val();
+        var dir = $('#dir').val();
+        var vol = $('#vol').val();
+        $.post('/api/order', { inst, dir, vol }, function (d) {
+        alert('下单已发送：' + d.msg);
+        });
+        }
+
+        function addLog(s) {
+        if (!s) return;
+        var box = $('#logBox');
+        box.append(s + '<br>');
+        box.scrollTop(box[0].scrollHeight);
+        }
+    </script>
+</body>
+</html>

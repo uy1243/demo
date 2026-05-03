@@ -11,7 +11,7 @@ add_executable(stat
     
     ../datasource/market_data.cpp
     "../analyze/market_analyzer.cpp"
-)
+ "kline.h" "kline.cpp" "strategy2.cpp")
 
 target_link_libraries(stat PRIVATE
     winhttp
