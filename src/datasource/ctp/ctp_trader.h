@@ -1,7 +1,7 @@
 // trading/ctp_trader.h
 #pragma once
-#include "trader_interface.h"
-#include "../events/event_system.h"
+#include "../trader_interface.h"
+#include "../../strategy/event_system.h"
 #include <string>
 #include <unordered_map>
 #include <mutex>

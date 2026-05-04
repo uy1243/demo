@@ -5,6 +5,7 @@
 #include <set>
 #include <chrono>
 #include <ctime>
+#include <unordered_map>
 
 struct TradingSession {
     std::string start_time; // 格式 "HH:MM"

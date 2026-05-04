@@ -1,9 +1,9 @@
 // backtesting/backtest_engine.h
 #pragma once
-#include "../market_types.h"
-#include "../events/event_system.h"
-#include "../services/market_service.h"
-#include "../data_sources/mysql_data_source.h"
+#include "../datasource/market_types.h"
+#include "../strategy/event_system.h"
+#include "../datasource/market_service.h"
+#include "../datasource/mysql_db/mysql_data_source.h"
 #include <string>
 #include <vector>
 #include <memory>

@@ -4,22 +4,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
-
-// 统一的行情数据结构
-struct TickData {
-    std::string instrument;    // 合约代码
-    std::string source;        // 数据源标识 (e.g., "DCE", "CZCE", "SINA")
-    std::string time;          // 时间戳
-    double last = 0.0;         // 最新价
-    double open = 0.0;         // 开盘价
-    double high = 0.0;         // 最高价
-    double low = 0.0;          // 最低价
-    double bid1 = 0.0;         // 买一价
-    double ask1 = 0.0;         // 卖一价
-    long long volume = 0;      // 成交量
-    long long open_interest = 0; // 持仓量
-    // ... 可以根据需要添加更多字段
-};
+#include <common/types.h>
 
 // 数据源接口
 class IDataSource {

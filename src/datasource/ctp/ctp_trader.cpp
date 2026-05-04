@@ -1,8 +1,7 @@
 // trading/ctp_trader.cpp
 #include "ctp_trader.h"
 #include "common/types.h"
-#include "events/event_system.h"
-#include "events/event_system.h" // 你的事件定义
+#include "../../strategy/event_system.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>

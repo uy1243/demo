@@ -1,7 +1,7 @@
 // services/market_service.cpp
 #include "market_service.h"
-#include "common/trading_hours.h"
-#include "events/event_system.h"
+#include "utils/trading_hours.h"
+#include "../strategy/event_system.h"
 #include <iostream>
 #include <algorithm>
 #include <chrono>

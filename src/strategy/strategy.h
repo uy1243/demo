@@ -2,7 +2,7 @@
 #pragma once
 #include <string>
 #include "common/types.h" // 包含 Direction 等
-#include "events/event_system.h"
+#include "strategy/event_system.h"
 
 class Strategy {
 public:

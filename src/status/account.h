@@ -5,7 +5,8 @@
 #include <unordered_map>
 #include <mutex>
 #include "../common/types.h"
-#include "../trading/trader_interface.h" // 新增
+#include "../datasource/trader_interface.h" // 新增
+#include "../strategy/event_system.h" // 新增
 
 class Account {
 public:

@@ -120,5 +120,8 @@ namespace {
             {"13:00", "15:00"}
             });
     }
-    static auto init = init_default_schedules(); // 在库加载时初始化
+    struct DefaultInitializer {
+        DefaultInitializer() { init_default_schedules(); }
+    };
+    DefaultInitializer g_init;
 }

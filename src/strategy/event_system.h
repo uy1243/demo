@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <mutex>
+#include <common/types.h>
 
 // 定义事件基类
 struct Event {

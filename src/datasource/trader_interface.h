@@ -3,6 +3,7 @@
 #include "../common/types.h"
 #include <string>
 #include <memory>
+#include "../strategy/event_system.h"
 
 struct OrderRequest {
     std::string instrument;
@@ -37,4 +38,6 @@ public:
     virtual void start() = 0; // 启动监听回报
     virtual void stop() = 0;
     virtual std::string getName() const = 0; // API 名称
+    virtual void initialize(EventSystem* event_system) = 0;
+
 };
