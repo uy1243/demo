@@ -22,17 +22,29 @@ struct MarketUpdateEvent : public Event {
 
 // 订单状态变更事件
 struct OrderUpdateEvent : public Event {
-    std::string order_id; // 本地订单ID
-    std::string exchange_order_id; // 交易所订单ID (可选)
-    OrderStatus new_status;
-    int filled_volume;
-    double avg_fill_price;
-    std::string error_msg; // 错误信息
+    std::string order_id;           // 本地订单ID
+    std::string exchange_order_id;  // 交易所订单ID
+    OrderStatus new_status;         // 新状态
+    int filled_volume;              // 已成交数量
+    double avg_fill_price;          // 平均成交价
+    std::string error_msg;          // 错误信息
 
-    OrderUpdateEvent(const std::string& id, OrderStatus status, int filled, double price, const std::string& msg = "")
-        : Event("ORDER_UPDATE"), order_id(id), new_status(status), filled_volume(filled), avg_fill_price(price), error_msg(msg) {
+    // 完整构造函数
+    OrderUpdateEvent(
+        const std::string& id,
+        const std::string& exchange_id,
+        OrderStatus status,
+        int filled,
+        double price,
+        const std::string& msg = ""
+    ) : Event("ORDER_UPDATE"),
+        order_id(id),
+        exchange_order_id(exchange_id),
+        new_status(status),
+        filled_volume(filled),
+        avg_fill_price(price),
+        error_msg(msg) {
     }
-    // exchange_order_id 在 Account::on_order_update 中可以从本地订单记录里获取或通过映射获取
 };
 
 // 交易信号事件 (策略 -> 账户)

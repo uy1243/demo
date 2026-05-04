@@ -109,25 +109,35 @@ void Account::execute_cancel(const std::string& order_id) {
 
 void Account::on_order_update(const OrderUpdateEvent& event) {
     std::lock_guard<std::mutex> lock(mtx_);
+
+    // 查找本地订单
     auto it = orders_.find(event.order_id);
     if (it != orders_.end()) {
+        // 更新订单状态
         it->second.status = event.new_status;
         it->second.filled = event.filled_volume;
-        it->second.exchange_order_id = event.exchange_order_id; // 假设事件里有这个字段
+        it->second.exchange_order_id = event.exchange_order_id;
 
-        if (event.new_status == OrderStatus::FILLED || event.new_status == OrderStatus::PART_FILLED) {
-            // 更新持仓
-            updatePosition(it->second.instrument, it->second.dir, event.filled_volume, event.avg_fill_price);
-            // TODO: 解冻已成交部分的资金
-            double unfreeze_amount = event.avg_fill_price * event.filled_volume * 0.1; // 示例
+        // 如果是成交，更新持仓
+        if (event.new_status == OrderStatus::FILLED ||
+            event.new_status == OrderStatus::PART_FILLED) {
+            updatePosition(it->second.instrument,
+                it->second.dir,
+                event.filled_volume,
+                event.avg_fill_price);
+
+            // 更新资金（解冻保证金）
+            double unfreeze_amount = event.avg_fill_price * event.filled_volume * 0.1;
             updateFund(0, -unfreeze_amount);
         }
         else if (event.new_status == OrderStatus::CANCELED) {
             // 订单被撤销，解冻全部资金
-            double unfreeze_total = it->second.price * it->second.volume * 0.1; // 示例保证金
+            double unfreeze_total = it->second.price * it->second.volume * 0.1;
             updateFund(0, -unfreeze_total);
         }
-        // TODO: 根据需要更新资金...
+
+        // 更新总资产
+        fund_.total_asset = 1000000 + fund_.position_pnl - fund_.fee;
     }
 }
 

@@ -105,13 +105,17 @@ void YourApiTrader::onOrderResponse(void* context, const char* local_id, int sta
     YourApiTrader* self = static_cast<YourApiTrader*>(context);
     if (!self || !self->event_system_) return;
 
-    self->event_system_->publish(OrderUpdateEvent{
-        std::string(local_id),
-        self->convertApiStatus(status),
-        filled,
-        avg_price,
-        std::string(msg ? msg : "")
-        });
+    // 修复：使用正确的构造函数调用，提供所有6个参数
+    self->event_system_->publish(
+        OrderUpdateEvent(
+            std::string(local_id),           // 1. order_id
+            "",                              // 2. exchange_order_id (这里没有交易所ID，用空字符串)
+            self->convertApiStatus(status),  // 3. new_status
+            filled,                          // 4. filled_volume
+            avg_price,                       // 5. avg_fill_price
+            std::string(msg ? msg : "")      // 6. error_msg
+        )
+    );
 }
 
 void YourApiTrader::onCancelResponse(void* context, const char* local_id, bool success, const char* msg) {

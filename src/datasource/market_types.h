@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <unordered_map>
+#include <map>
 #include <common/types.h>
 
 // 数据源接口
@@ -18,4 +18,9 @@ public:
     virtual void start() {}
     // 停止数据源
     virtual void stop() {}
+    // 获取历史数据（用于回测）
+    virtual std::multimap<std::string, TickData> fetchHistoricalData(
+        const std::string& instrument,
+        const std::string& start_time,
+        const std::string& end_time) = 0;
 };
