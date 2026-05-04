@@ -1,100 +1,40 @@
+// state_machine/account.h
 #pragma once
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <mutex>
-#include "datasource/market_data.h"
+#include "../common/types.h"
+#include "../trading/trader_interface.h" // 新增
 
-// ==========================
-// 1. 订单状态枚举
-// ==========================
-enum class OrderStatus {
-    SUBMITTING,     // 提交中
-    PENDING,        // 已报单
-    PART_FILLED,    // 部分成交
-    FILLED,         // 全部成交
-    CANCELED,       // 已撤单
-    REJECTED        // 已拒单
-};
-
-// 买卖方向
-enum class Direction {
-    LONG,  // 买
-    SHORT  // 卖
-};
-
-// ==========================
-// 2. 订单结构体
-// ==========================
-struct Order {
-    std::string order_id;       // 订单ID
-    std::string instrument;     // 合约
-    Direction dir;             // 方向
-    double price = 0.0;         // 价格
-    int volume = 0;             // 总手数
-    int filled = 0;             // 已成交
-    OrderStatus status = OrderStatus::PENDING;
-    std::string create_time;
-};
-
-// ==========================
-// 3. 持仓结构体
-// ==========================
-struct Position {
-    std::string instrument;
-    Direction dir;
-    int volume = 0;
-    double avg_price = 0.0;  // 开仓均价
-    float pnl = 0.0f;        // 浮动盈亏
-};
-
-// ==========================
-// 4. 资金结构体
-// ==========================
-struct AccountFund {
-    double total_asset = 1000000.0;  // 总权益
-    double available = 1000000.0;    // 可用资金
-    double frozen = 0.0;             // 冻结资金
-    double position_pnl = 0.0;       // 持仓盈亏
-    double fee = 0.0;                // 手续费
-};
-
-// ==========================
-// 账户管理类（单例）
-// ==========================
 class Account {
 public:
     static Account& Instance();
+    void initialize(EventSystem* event_sys, ITrader* trader); // 新增 trader 参数
 
-    // 下单接口
-    std::string buy(const std::string& inst, double price, int vol);
-    std::string sell(const std::string& inst, double price, int vol);
+    // 执行下单（现在是真实下单）
+    std::string execute_order(const std::string& inst, Direction dir, double price, int vol);
+    void execute_cancel(const std::string& order_id);
 
-    // 撤单
-    void cancelOrder(const std::string& order_id);
-
-    // 模拟撮合（每秒自动撮合）
-    void matchOrders(const MarketCache& cache);
-
-    // 计算持仓盈亏
-    void updatePnL(const MarketCache& cache);
+    // 用于处理来自交易API的订单更新事件
+    void on_order_update(const OrderUpdateEvent& event); // 假设你已在 event_system.h 中定义此事件
 
     // 查询接口
-    std::vector<Order> getAllOrders();
-    std::vector<Position> getAllPositions();
-    AccountFund getFundInfo();
+    std::vector<Order> getAllOrders() const;
+    std::vector<Position> getAllPositions() const;
+    AccountFund getFundInfo() const;
 
 private:
     Account() = default;
-    std::mutex mtx_;
-
-    // 订单、持仓、资金
+    mutable std::mutex mtx_;
     std::unordered_map<std::string, Order> orders_;
     std::unordered_map<std::string, Position> positions_;
     AccountFund fund_;
+    EventSystem* event_system_ = nullptr;
+    ITrader* trader_ = nullptr; // 新增
 
-    // 内部工具
     std::string genOrderId();
     Position* getPosition(const std::string& inst, Direction dir);
     void updateFund(double fee, double frozen_delta);
+    void updatePosition(const std::string& inst, Direction dir, int vol, double price);
 };

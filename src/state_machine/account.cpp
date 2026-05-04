@@ -1,8 +1,13 @@
+// state_machine/account.cpp
 #include "account.h"
+#include "../events/event_system.h" // 包含 OrderUpdateEvent 定义
 #include <chrono>
-#include <random>
-#include <iomanip>
-#include <sstream>
+#include <iostream>
+
+void Account::initialize(EventSystem* event_sys, ITrader* trader) {
+    event_system_ = event_sys;
+    trader_ = trader;
+}
 
 Account& Account::Instance() {
     static Account ins;
@@ -15,6 +20,7 @@ std::string Account::genOrderId() {
 }
 
 Position* Account::getPosition(const std::string& inst, Direction dir) {
+    std::lock_guard<std::mutex> lock(mtx_);
     std::string key = inst + (dir == Direction::LONG ? "_L" : "_S");
     if (positions_.find(key) == positions_.end()) {
         Position p;
@@ -26,118 +32,120 @@ Position* Account::getPosition(const std::string& inst, Direction dir) {
 }
 
 void Account::updateFund(double fee, double frozen_delta) {
+    std::lock_guard<std::mutex> lock(mtx_);
     fund_.fee += fee;
     fund_.frozen += frozen_delta;
     fund_.available = fund_.total_asset - fund_.frozen - fund_.position_pnl;
 }
 
-// 买开
-std::string Account::buy(const std::string& inst, double price, int vol) {
+void Account::updatePosition(const std::string& inst, Direction dir, int vol, double price) {
     std::lock_guard<std::mutex> lock(mtx_);
-    Order o;
-    o.order_id = genOrderId();
-    o.instrument = inst;
-    o.dir = Direction::LONG;
-    o.price = price;
-    o.volume = vol;
-    o.status = OrderStatus::PENDING;
-    orders_[o.order_id] = o;
+    Position* pos = getPosition(inst, dir);
+    int old_vol = pos->volume;
+    double old_cost = pos->avg_price * old_vol;
 
-    updateFund(1.0, price * vol * 0.1);
-    return o.order_id;
-}
-
-// 卖开
-std::string Account::sell(const std::string& inst, double price, int vol) {
-    std::lock_guard<std::mutex> lock(mtx_);
-    Order o;
-    o.order_id = genOrderId();
-    o.instrument = inst;
-    o.dir = Direction::SHORT;
-    o.price = price;
-    o.volume = vol;
-    o.status = OrderStatus::PENDING;
-    orders_[o.order_id] = o;
-
-    updateFund(1.0, price * vol * 0.1);
-    return o.order_id;
-}
-
-void Account::cancelOrder(const std::string& order_id) {
-    std::lock_guard<std::mutex> lock(mtx_);
-    if (orders_.count(order_id)) {
-        orders_[order_id].status = OrderStatus::CANCELED;
-        updateFund(0, -orders_[order_id].price * orders_[order_id].volume * 0.1);
+    pos->volume += vol;
+    if (pos->volume > 0) {
+        pos->avg_price = (old_cost + price * vol) / pos->volume;
     }
 }
 
-// 模拟撮合
-void Account::matchOrders(const MarketCache& cache) {
-    std::lock_guard<std::mutex> lock(mtx_);
-    for (auto& [id, o] : orders_) {
-        if (o.status != OrderStatus::PENDING && o.status != OrderStatus::PART_FILLED)
-            continue;
+std::string Account::execute_order(const std::string& inst, Direction dir, double price, int vol) {
+    if (!trader_) {
+        std::cerr << "[Account] Trader not initialized!" << std::endl;
+        return "";
+    }
 
-        auto it = cache.find(o.instrument);
-        if (it == cache.end()) continue;
+    std::string local_order_id = genOrderId();
 
-        double px = it->second.last;
-        if (fabs(px - o.price) < 5) {
-            int trade_vol = o.volume - o.filled;
-            o.filled += trade_vol;
+    // 创建本地订单记录
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        Order o;
+        o.order_id = local_order_id;
+        o.instrument = inst;
+        o.dir = dir;
+        o.price = price;
+        o.volume = vol;
+        o.status = OrderStatus::SUBMITTING; // 本地认为正在提交
+        orders_[local_order_id] = o;
+    }
 
-            Position* pos = getPosition(o.instrument, o.dir);
-            pos->volume += trade_vol;
-            pos->avg_price = (pos->avg_price * pos->volume + o.price * trade_vol) / (pos->volume + trade_vol);
+    // 发送真实订单请求
+    OrderRequest req;
+    req.instrument = inst;
+    req.direction = dir;
+    req.price = price;
+    req.volume = vol;
+    req.custom_order_ref = local_order_id;
 
-            if (o.filled >= o.volume)
-                o.status = OrderStatus::FILLED;
-            else
-                o.status = OrderStatus::PART_FILLED;
+    OrderResponse resp = trader_->placeOrder(req);
 
-            updateFund(0, -o.price * trade_vol * 0.1);
+    if (resp.status == OrderStatus::REJECTED) {
+        // 如果本地就失败，更新状态
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto it = orders_.find(local_order_id);
+        if (it != orders_.end()) {
+            it->second.status = OrderStatus::REJECTED;
         }
+        std::cerr << "[Account] Order rejected locally: " << resp.error_msg << std::endl;
+        return ""; // 或者返回 local_order_id，但标记为失败
     }
+
+    return local_order_id;
 }
 
-// 更新持仓盈亏
-void Account::updatePnL(const MarketCache& cache) {
+void Account::execute_cancel(const std::string& order_id) {
+    if (!trader_) {
+        std::cerr << "[Account] Trader not initialized!" << std::endl;
+        return;
+    }
+
+    CancelRequest req;
+    req.order_id = order_id;
+
+    trader_->cancelOrder(req);
+}
+
+void Account::on_order_update(const OrderUpdateEvent& event) {
     std::lock_guard<std::mutex> lock(mtx_);
-    fund_.position_pnl = 0;
+    auto it = orders_.find(event.order_id);
+    if (it != orders_.end()) {
+        it->second.status = event.new_status;
+        it->second.filled = event.filled_volume;
+        it->second.exchange_order_id = event.exchange_order_id; // 假设事件里有这个字段
 
-    for (auto& [key, pos] : positions_) {
-        auto it = cache.find(pos.instrument);
-        if (it == cache.end()) continue;
-
-        double pnl = 0;
-        if (pos.dir == Direction::LONG)
-            pnl = (it->second.last - pos.avg_price) * pos.volume * 10;
-        else
-            pnl = (pos.avg_price - it->second.last) * pos.volume * 10;
-
-        pos.pnl = pnl;
-        fund_.position_pnl += pnl;
+        if (event.new_status == OrderStatus::FILLED || event.new_status == OrderStatus::PART_FILLED) {
+            // 更新持仓
+            updatePosition(it->second.instrument, it->second.dir, event.filled_volume, event.avg_fill_price);
+            // TODO: 解冻已成交部分的资金
+            double unfreeze_amount = event.avg_fill_price * event.filled_volume * 0.1; // 示例
+            updateFund(0, -unfreeze_amount);
+        }
+        else if (event.new_status == OrderStatus::CANCELED) {
+            // 订单被撤销，解冻全部资金
+            double unfreeze_total = it->second.price * it->second.volume * 0.1; // 示例保证金
+            updateFund(0, -unfreeze_total);
+        }
+        // TODO: 根据需要更新资金...
     }
-
-    fund_.total_asset = 1000000 + fund_.position_pnl - fund_.fee;
-    updateFund(0, 0);
 }
 
-std::vector<Order> Account::getAllOrders() {
+std::vector<Order> Account::getAllOrders() const {
     std::lock_guard<std::mutex> lock(mtx_);
     std::vector<Order> res;
-    for (auto& p : orders_) res.push_back(p.second);
+    for (const auto& p : orders_) res.push_back(p.second);
     return res;
 }
 
-std::vector<Position> Account::getAllPositions() {
+std::vector<Position> Account::getAllPositions() const {
     std::lock_guard<std::mutex> lock(mtx_);
     std::vector<Position> res;
-    for (auto& p : positions_) res.push_back(p.second);
+    for (const auto& p : positions_) res.push_back(p.second);
     return res;
 }
 
-AccountFund Account::getFundInfo() {
+AccountFund Account::getFundInfo() const {
     std::lock_guard<std::mutex> lock(mtx_);
     return fund_;
 }

@@ -43,7 +43,7 @@ add_executable(trader
  "src/state_machine/settlement.cpp"
 "src/datasource/https/market_data.cpp"
 src/strategy/market_analyzer.cpp
-src/utils/logger.cpp "src/datasource/mysql_db/db.hpp")
+src/utils/logger.cpp "src/datasource/mysql_db/db.hpp" "src/datasource/market_types.h" "src/datasource/market_cache.h" "src/datasource/market_cache.cpp" "src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp" "src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h" "src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" "src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" "src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h" "src/datasource/ctp/ctp_trader.h" "src/datasource/ctp/ctp_trader.cpp" "src/datasource/gui/gui_trader.h" "src/datasource/gui/gui_trader.cpp")
 
 target_link_libraries(trader PRIVATE 
     thosttraderapi_se
