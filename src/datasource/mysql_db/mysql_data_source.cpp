@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <codecvt>
 
 MysqlDataSource::MysqlDataSource(
     const std::string& host, int port,
@@ -13,8 +14,10 @@ MysqlDataSource::MysqlDataSource(
 
 Session MysqlDataSource::getSession() {
     try {
-        std::string conn_str = host_ + ":" + std::to_string(port_);
-        return Session(conn_str, user_, password_);
+        //std::string conn_str = host_ + ":" + std::to_string(port_);
+        auto config = mysqlx::SessionSettings("mysqlx://root:Yu646010@127.0.0.1:33060");
+        return Session (config);
+        //return Session(conn_str, user_, password_);
     }
     catch (const mysqlx::abi2::r0::Error& e) {
         std::cerr << "Failed to connect to MySQL: " << e.what() << std::endl;
@@ -69,16 +72,19 @@ std::multimap<std::string, TickData> MysqlDataSource::fetchHistoricalData(
 ) {
     std::multimap<std::string, TickData> sorted_ticks; // 按时间排序
     try {
+		std::cout << "fetchHistoricalData: instrument=" << instrument << ", database=" << database_ << ", end_time=" << end_time << std::endl;
         auto session = getSession();
         auto db = session.getSchema(database_);
         auto table = db.getTable("a09_4day_realtime");
 
         // 修改SQL查询以适应你的表结构和时间字段
         // 假设时间字段名为 'timestamp'
-        std::string sql_query = "SELECT open, high, low, close, volume, timestamp FROM " + database_ + ".a09_4day_realtime WHERE instrument = ? AND timestamp BETWEEN ? AND ? ORDER BY timestamp ASC";
+        std::string sql_query = "SELECT open, max, vol,cvol, tdate FROM " +
+            database_ + ".a09_4day_realtime";
 
         auto sql_res = session.sql(sql_query)
-            .bind(instrument, start_time, end_time)
+            //.bind("start", start_time)
+            //.bind("end", end_time)
             .execute();
 
         Row row;
@@ -86,12 +92,12 @@ std::multimap<std::string, TickData> MysqlDataSource::fetchHistoricalData(
             TickData tick;
             tick.instrument = instrument;
             tick.source = getName();
-            tick.last = row[3].get<double>(); // close
-            tick.open = row[0].get<double>();
-            tick.high = row[1].get<double>();
-            tick.low = row[2].get<double>();
-            tick.volume = static_cast<long long>(row[4].get<int>());
-            tick.time = row[5].get<std::string>();
+            //tick.last = row[2].get<float>(); // close
+            tick.open = row[0].get<float>();
+            tick.high = row[1].get<float>();
+            //tick.low = row[2].get<int>();
+            //tick.volume = static_cast<long long>(row[3].get<int>());
+            tick.time = row[4].get<std::string>();
 
             tick.bid1 = tick.last - 0.5;
             tick.ask1 = tick.last + 0.5;

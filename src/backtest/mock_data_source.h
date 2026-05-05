@@ -16,8 +16,8 @@ public:
     std::vector<TickData> fetchQuotes(const std::string& instrument) override {
         std::vector<TickData> result;
 
-        if (instrument == "m2509") {
-            result = generateMockTicks("m2509", 3450.0, 15.0);
+        if (instrument == "a2309") {
+            result = generateMockTicks("a2309", 3450.0, 15.0);
         }
         else if (instrument == "SR2509") {
             result = generateMockTicks("SR2509", 6510.0, 20.0);

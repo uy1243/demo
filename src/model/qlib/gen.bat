@@ -1,0 +1,1 @@
+python prediction_service.py --instruments cu2509 m2509 --model_path model.pkl --output_file qlib_predictions.json --interval 3600

@@ -20,7 +20,7 @@ BacktestEngine::SimulatedTrader::SimulatedTrader(BacktestEngine* engine, EventSy
 // 实现 initialize (目前可能不需要做特殊逻辑，或者保存 event_system)
 void BacktestEngine::SimulatedTrader::initialize(EventSystem* event_system) {
     // 如果需要保存 event_system 指针，可以在这里赋值
-    // event_system_ = event_system; 
+     event_system_ = event_system; 
     // (注意：构造函数已经传入了 event_system，通常不需要在这里重复赋值，除非有特殊逻辑)
     // 如果不需要逻辑，保持空实现即可
 }

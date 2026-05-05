@@ -131,7 +131,7 @@ void printBacktestResults(const AccountFund& final_fund,
     std::cout << "==========================================" << std::endl;
 }
 
-int main0() {
+int main() {
     std::cout << "==========================================" << std::endl;
     std::cout << "      量化交易回测系统 v1.0" << std::endl;
     std::cout << "==========================================" << std::endl;
@@ -159,12 +159,14 @@ int main0() {
 
     // 设置事件订阅
     event_system.subscribe<OrderUpdateEvent>("ORDER_UPDATE",
-        [](const OrderUpdateEvent& e) {
-            Account::Instance().on_order_update(e);
+        [&](const OrderUpdateEvent& e) {
+			std::cout << " [Main] 收到订单更新事件: " << e.order_id << ", 状态: " << static_cast<int>(e.new_status) << std::endl;
+            account.on_order_update(e);
         });
 
     event_system.subscribe<TradeSignalEvent>("TRADE_SIGNAL",
         [](const TradeSignalEvent& e) {
+			std::cout << "[Main] 收到交易信号: " << std::endl;
             Account::Instance().execute_order(e.instrument, e.direction, e.price, e.volume);
         });
 
@@ -174,13 +176,15 @@ int main0() {
     // 添加 MySQL 数据源
     try {
         auto mysql_source = std::make_unique<MysqlDataSource>(
-            "127.0.0.1",  // MySQL 主机
+            "localhost",  // MySQL 主机
             33060,         // MySQL 端口
             "root",        // 用户名
             "Yu646010",    // 密码
             "black"        // 数据库名
         );
         backtest_engine.addDataSource(std::move(mysql_source));
+        backtest_engine.setInstruments({ "a2509" });
+
         std::cout << "[Main] MySQL 数据源连接成功" << std::endl;
     }
     catch (const std::exception& e) {
@@ -190,11 +194,13 @@ int main0() {
         // 如果 MySQL 连接失败，使用模拟数据源
         auto mock_source = std::make_unique<MockDataSource>();
         backtest_engine.addDataSource(std::move(mock_source));
+        backtest_engine.setInstruments({ "a2509" });
+
     }
 
     // 设置回测周期
-    std::string start_date = "2024-05-20 09:00:00";
-    std::string end_date = "2024-05-24 15:00:00";
+    std::string start_date = "2023-02-28 09:00:00";
+    std::string end_date = "2023-03-24 15:00:00";
     backtest_engine.setBacktestPeriod(start_date, end_date);
 
     std::cout << "\n[Main] 开始回测..." << std::endl;

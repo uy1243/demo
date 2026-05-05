@@ -4,7 +4,7 @@
 #include "datasource/market_data.h"
 #include "status/account.h"
 #include "strategy/strategy.h"
-#include "datasource/gui/win32_auto.hpp"
+#include "datasource/gui/win32_auto.h"
 #include "datasource/mysql_db/db.hpp"
 #include <windows.h>
 #include "strategy/event_system.h"
@@ -24,12 +24,11 @@
 #include "datasource/mysql_db/mysql_data_source.h"
 #include <iostream>
 #include "strategy/event_system.h"
-#include "datasource/gui/gui_trader.h" // 如果需要
 #include <iostream>
 // 👇 加上这一行，解决中文乱码
 #pragma comment(linker, "/ENTRY:mainCRTStartup")
 
-int main2(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
     EventSystem event_system;
 
     // --- 选择运行模式 ---
@@ -58,7 +57,7 @@ int main2(int argc, char* argv[]) {
     //    "111111", // InvestorID
     //    "111111"  // Password
     //);
-     primary_trader = std::make_unique<YourApiTrader>("path/to/config.json"); // 或者使用你的API
+     primary_trader = std::make_unique<Win32Auto>("path/to/config.json"); // 或者使用你的API
 
     // --- 初始化账户，注入真实交易接口 ---
     auto& account = Account::Instance();
@@ -214,7 +213,7 @@ int main2(int argc, char* argv[]) {
 //    return 0;
 //}
 
-int main() {
+int bc1() {
     // 解决 Windows 控制台中文乱码
     system("chcp 65001");
   //  get_one_second_random_quotes();

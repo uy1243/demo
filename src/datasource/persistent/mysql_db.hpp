@@ -15,7 +15,8 @@ public:
             // 1. 先关闭旧连接（如果有）
             close();
 
-            // 2. 尝试创建新会话
+            // 2. 尝试创建新会话 
+
             sess = new mysqlx::Session(host, 33060, user, pwd);
 
             // 3. 执行操作

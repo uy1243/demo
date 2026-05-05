@@ -18,11 +18,9 @@ Strategy& Strategy::Instance() {
 }
 
 void Strategy::send_signal(const std::string& instrument, Direction dir, double price, int volume) {
+
     if (event_system_) {
         event_system_->publish(TradeSignalEvent(instrument, dir, price, volume));
-        std::cout << "[Strategy] Signal sent: " <<
-            (dir == Direction::LONG ? "BUY" : "SELL") <<
-            " " << instrument << " @ " << price << " x " << volume << std::endl;
     }
 }
 
@@ -31,10 +29,13 @@ void Strategy::on_market_update() {
     auto cache = market_service.getCache().getAll();
     auto& account = Account::Instance();
     auto positions = account.getAllPositions();
-
     for (const auto& [inst, tick] : cache) {
+        std::cout << "[Strategy] Processing tick for " << inst << " at " << tick.time << ": last=" << tick.last << std::endl;
+        send_signal("a2509", Direction::LONG, tick.open, 1);
+        return; // 先测试一个合约，后续再完善其他逻辑
         // 1. 检查当前tick是否在该品种的交易时间内
         if (!TradingHours::isMarketOpen(inst, tick.time)) {
+		    std::cout << "[Strategy] " << inst << " is not in trading hours at " << tick.time << std::endl;
             continue; // 不在交易时间，跳过该tick
         }
 
@@ -45,6 +46,7 @@ void Strategy::on_market_update() {
             // if (tick.last > previous_close) send_signal(inst, Direction::LONG, ...);
             // else if (tick.last < previous_close) send_signal(inst, Direction::SHORT, ...);
         }
+        
 
         // 3. 基于价格的普通策略
         if (inst == "m2509") {
@@ -60,6 +62,7 @@ void Strategy::on_market_update() {
             }
         }
         if (inst == "SR2509") {
+            
             // 白糖策略，同样限制时间段
             if (tick.time >= "13:30" && tick.time <= "15:00") {
                 bool has_position = false;

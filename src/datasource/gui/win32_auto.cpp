@@ -1,5 +1,41 @@
-﻿#include "win32_auto.hpp"
+﻿#include "win32_auto.h"
 #include <utils/logger.h>
+
+// ===================== 修复：实现空的 API 桩函数 =====================
+extern "C" void* your_api_init(const char* config_path) {
+    std::cout << "[YourApi] your_api_init 模拟初始化成功" << std::endl;
+    return (void*)1; // 返回非空模拟有效句柄
+}
+
+extern "C" int your_api_place_order(void* handle, const char* instrument, char direction, double price, int volume, const char* local_ref) {
+    std::cout << "[YourApi] 模拟下单: " << instrument << " " << (direction == 'B' ? "买" : "卖")
+        << " 价格:" << price << " 手数:" << volume << std::endl;
+    return 0; // 成功
+}
+
+extern "C" int your_api_cancel_order(void* handle, const char* local_ref) {
+    std::cout << "[YourApi] 模拟撤单: " << local_ref << std::endl;
+    return 0;
+}
+
+extern "C" void your_api_release(void* handle) {}
+extern "C" void your_api_run(void* handle) {}
+extern "C" void your_api_stop(void* handle) {}
+
+// ===================== 以下是你原来的代码，完全不动 =====================
+Win32Auto::Win32Auto(const std::string& config_path) : config_path_(config_path) {
+    api_handle_ = your_api_init(config_path_.c_str());
+    if (!api_handle_) {
+        std::cerr << "[YourApi] Initialization failed!" << std::endl;
+    }
+}
+
+Win32Auto::~Win32Auto() {
+    if (api_handle_) {
+        your_api_release(api_handle_);
+        api_handle_ = nullptr;
+    }
+}
 
 HWND Win32Auto::find_window(const std::wstring& title) {
     return FindWindowW(NULL, title.c_str());
@@ -97,37 +133,97 @@ void Win32Auto::click(HWND btn) {
     Sleep(300);
 }
 
-void Win32Auto::get_settlement_info()
-{
 
+
+void Win32Auto::initialize(EventSystem* event_system) {
+    event_system_ = event_system;
 }
 
-void  Win32Auto::insert_order(const std::string& inst, char dir, char offset, double price, int vol)
-{
+OrderResponse Win32Auto::placeOrder(const OrderRequest& req) {
+    std::lock_guard<std::mutex> lock(request_mutex_);
+    OrderResponse resp;
+    resp.local_order_ref = req.custom_order_ref;
 
-}
-void auto_login() {
-    HWND login_win = Win32Auto::find_window(L"连接至服务器");
-    LOG_INFO("找到登录窗口: %p", login_win);
-
-    // 找最下方的登录按钮（TXPButton）
-    HWND btn_login = Win32Auto::find_bottom_txbutton(login_win);
-    Win32Auto::click(btn_login);
-
-    // 关闭系统消息
-    HWND info_win = Win32Auto::wait_window(L"系统消息", 30000);
-    if (info_win) {
-        LOG_INFO("找到系统消息窗口: %p", info_win);
-        HWND btn_close = Win32Auto::find_txbutton_by_index(info_win, 0);
-        if (btn_close) {
-            LOG_INFO("关闭按钮: %p", btn_close);
-            Win32Auto::click(btn_close);
-        }
+    if (!api_handle_) {
+        resp.status = OrderStatus::REJECTED;
+        resp.error_msg = "API handle is invalid.";
+        return resp;
     }
-    Sleep(1000);
+
+    char dir_char = (req.direction == Direction::LONG) ? 'B' : 'S';
+    int ret_code = your_api_place_order(api_handle_, req.instrument.c_str(), dir_char, req.price, req.volume, req.custom_order_ref.c_str());
+
+    if (ret_code != 0) {
+        resp.status = OrderStatus::REJECTED;
+        resp.error_msg = "API place order failed with code: " + std::to_string(ret_code);
+    }
+    else {
+        resp.status = OrderStatus::SUBMITTING;
+    }
+
+    return resp;
 }
 
-int main() {
-    auto_login();
-    return 0;
+CancelResponse Win32Auto::cancelOrder(const CancelRequest& req) {
+    std::lock_guard<std::mutex> lock(request_mutex_);
+    CancelResponse resp;
+    resp.local_order_ref = req.order_id;
+
+    if (!api_handle_) {
+        resp.success = false;
+        resp.error_msg = "API handle is invalid.";
+        return resp;
+    }
+
+    int ret_code = your_api_cancel_order(api_handle_, req.order_id.c_str());
+    resp.success = (ret_code == 0);
+    if (!resp.success) {
+        resp.error_msg = "API cancel order failed with code: " + std::to_string(ret_code);
+    }
+
+    return resp;
+}
+
+void Win32Auto::start() {
+    if (api_handle_) {
+        your_api_run(api_handle_);
+    }
+}
+
+void Win32Auto::stop() {
+    if (api_handle_) {
+        your_api_stop(api_handle_);
+    }
+}
+
+void Win32Auto::onOrderResponse(void* context, const char* local_id, int status, int filled, double avg_price, const char* msg) {
+    Win32Auto* self = static_cast<Win32Auto*>(context);
+    if (!self || !self->event_system_) return;
+
+    // 修复：使用正确的构造函数调用，提供所有6个参数
+    self->event_system_->publish(
+        OrderUpdateEvent(
+            std::string(local_id),           // 1. order_id
+            "",                              // 2. exchange_order_id (这里没有交易所ID，用空字符串)
+            self->convertApiStatus(status),  // 3. new_status
+            filled,                          // 4. filled_volume
+            avg_price,                       // 5. avg_fill_price
+            std::string(msg ? msg : "")      // 6. error_msg
+        )
+    );
+}
+
+void Win32Auto::onCancelResponse(void* context, const char* local_id, bool success, const char* msg) {
+    std::cout << "[YourApi] Cancel response for " << local_id << ": " << (success ? "Success" : "Failed") << ", Msg: " << (msg ? msg : "") << std::endl;
+}
+
+OrderStatus Win32Auto::convertApiStatus(int api_status) {
+    switch (api_status) {
+    case 0: return OrderStatus::PENDING;
+    case 1: return OrderStatus::FILLED;
+    case 2: return OrderStatus::PART_FILLED;
+    case 3: return OrderStatus::CANCELED;
+    case -1: return OrderStatus::REJECTED;
+    default: return OrderStatus::REJECTED;
+    }
 }

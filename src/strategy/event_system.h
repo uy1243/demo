@@ -7,6 +7,7 @@
 #include <string>
 #include <mutex>
 #include <common/types.h>
+#include <iostream>
 
 // 定义事件基类
 struct Event {
@@ -74,8 +75,10 @@ public:
     }
 
     void publish(const Event& event) {
+		std::cout << "Publishing event: " << event.type << std::endl;
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = callbacks_.find(event.type);
+		std::cout << "Found callbacks for event type: " << event.type << ", count: " << (it != callbacks_.end() ? it->second.size() : 0) << std::endl;
         if (it != callbacks_.end()) {
             for (auto& cb : it->second) {
                 cb(event);
