@@ -63,7 +63,7 @@ void MarketService::run_loop() {
                     }
                 }
                 if (source->getName() == "AKSHARE" && TradingHours::isMarketOpen("sr")) {
-                    auto ticks = source->fetchQuotes("M2609"); // 注意：API可能要求大写
+                    auto ticks = source->fetchQuotes("m2609"); // 注意：API可能要求大写
                     cache_.update(ticks);
                     if (!ticks.empty() && event_system_) {
                         event_system_->publish(MarketUpdateEvent{});

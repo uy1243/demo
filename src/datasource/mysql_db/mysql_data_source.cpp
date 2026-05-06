@@ -15,7 +15,7 @@ MysqlDataSource::MysqlDataSource(
 Session MysqlDataSource::getSession() {
     try {
         //std::string conn_str = host_ + ":" + std::to_string(port_);
-        auto config = mysqlx::SessionSettings("mysqlx://root:Yu646010@127.0.0.1:33060");
+        auto config = mysqlx::SessionSettings("mysqlx://root:Yu646010@localhost:33060");
         return Session (config);
         //return Session(conn_str, user_, password_);
     }

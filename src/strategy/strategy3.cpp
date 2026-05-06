@@ -180,6 +180,10 @@ void Strategy::on_market_update() {
                 // 此时更适合趋势策略而非均值回归
                 // 可以结合趋势指标（如MA）判断方向
                 // 这里简单示例：如果当前价格接近当日高点，且未持有空单，则考虑做多
+                bool has_short_pos = std::any_of(positions.begin(), positions.end(),
+                    [&inst](const Position& p) {
+                        return p.instrument == inst && p.dir == Direction::SHORT;
+					});
                 if (!has_short_pos && std::abs(tick.last - state_.sr2509_high_since_open) < 10) {
                     send_signal(inst, Direction::LONG, tick.last, 1);
                     std::cout << "[Strategy SR2509] Volatility Breakout Long @" << tick.last << std::endl;
