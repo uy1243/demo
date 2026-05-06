@@ -44,13 +44,7 @@ void MarketService::run_loop() {
         if (shouldFetchData()) {
             // 遍历所有数据源并获取数据
             for (auto& source : sources_) {
-                auto ticks = source->fetchQuotes("M0"); // 传入关注的品种
-                cache_.update(ticks);
-                // 如果获取到了数据，发布更新事件
-                if (!ticks.empty() && event_system_) {
-                    event_system_->publish(MarketUpdateEvent{});
-                }
-                // 这里需要知道数据源关注哪些品种，或者获取所有品种
+                 // 这里需要知道数据源关注哪些品种，或者获取所有品种
                 // 简化起见，假设每个数据源有预设的品种列表
                 // 例如，DCEDataSource 关注 "m"
                 if ( source->getName() == "DCE" && TradingHours::isMarketOpen("m")) {
@@ -64,6 +58,21 @@ void MarketService::run_loop() {
                 if (source->getName() == "CZCE" && TradingHours::isMarketOpen("sr")) {
                     auto ticks = source->fetchQuotes("SR"); // 注意：API可能要求大写
                     cache_.update(ticks);
+                    if (!ticks.empty() && event_system_) {
+                        event_system_->publish(MarketUpdateEvent{});
+                    }
+                }
+                if (source->getName() == "AKSHARE" && TradingHours::isMarketOpen("sr")) {
+                    auto ticks = source->fetchQuotes("M2609"); // 注意：API可能要求大写
+                    cache_.update(ticks);
+                    if (!ticks.empty() && event_system_) {
+                        event_system_->publish(MarketUpdateEvent{});
+                    }
+                }
+                if (source->getName() == "SINA" && TradingHours::isMarketOpen("sr")) {
+                    auto ticks = source->fetchQuotes("M2609"); // 传入关注的品种
+                    cache_.update(ticks);
+                    // 如果获取到了数据，发布更新事件
                     if (!ticks.empty() && event_system_) {
                         event_system_->publish(MarketUpdateEvent{});
                     }

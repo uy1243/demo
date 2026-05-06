@@ -26,10 +26,31 @@ struct TickData {
     double open = 0.0;         // 开盘价
     double high = 0.0;         // 最高价
     double low = 0.0;          // 最低价
-    double bid1 = 0.0;         // 买一价
-    double ask1 = 0.0;         // 卖一价
     long long volume = 0;      // 成交量
     long long open_interest = 0; // 持仓量（新增保留）
+
+    // --- 新增：市场深度数据 ---
+    double bid1{ 0.0 };             // 买一价
+    double bid2{ 0.0 };
+    double bid3{ 0.0 };
+    double bid4{ 0.0 };
+    double bid5{ 0.0 };
+    double ask1{ 0.0 };             // 卖一价
+    double ask2{ 0.0 };
+    double ask3{ 0.0 };
+    double ask4{ 0.0 };
+    double ask5{ 0.0 };
+
+    long long bid_vol1{ 0 };        // 买一量
+    long long bid_vol2{ 0 };
+    long long bid_vol3{ 0 };
+    long long bid_vol4{ 0 };
+    long long bid_vol5{ 0 };
+    long long ask_vol1{ 0 };        // 卖一量
+    long long ask_vol2{ 0 };
+    long long ask_vol3{ 0 };
+    long long ask_vol4{ 0 };
+    long long ask_vol5{ 0 };
 };
 
 struct Order {

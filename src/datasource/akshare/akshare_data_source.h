@@ -10,7 +10,7 @@
 
 class AkshareDataSource : public IDataSource {
 public:
-    std::string getName() const override { return "SINA"; }
+    std::string getName() const override { return "AKSHARE"; }
     std::vector<TickData> fetchQuotes(const std::string& instrument) override;
 
     std::multimap<std::string, TickData> fetchHistoricalData(

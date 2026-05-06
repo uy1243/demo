@@ -25,7 +25,6 @@ namespace {
     }
 }
 
-// --- 修改 fetchQuotes ---
 std::vector<TickData> AkshareDataSource::fetchQuotes(const std::string& commodity) {
     std::vector<TickData> res;
     std::string command = "python akshare_worker.py quote " + commodity;
@@ -45,7 +44,8 @@ std::vector<TickData> AkshareDataSource::fetchQuotes(const std::string& commodit
 
     TickData q{};
     q.source = getName();
-    // ... (映射逻辑同上) ...
+
+    // ... (映射其他基础字段) ...
     if (doc.HasMember("instrument") && doc["instrument"].IsString())
         q.instrument = doc["instrument"].GetString();
     if (doc.HasMember("last") && doc["last"].IsNumber())
@@ -60,6 +60,29 @@ std::vector<TickData> AkshareDataSource::fetchQuotes(const std::string& commodit
         q.volume = static_cast<long long>(doc["volume"].GetInt64());
     if (doc.HasMember("open_interest") && doc["open_interest"].IsNumber())
         q.open_interest = static_cast<long long>(doc["open_interest"].GetDouble());
+
+    // --- 新增：映射深度数据 ---
+    if (doc.HasMember("bid1") && doc["bid1"].IsNumber()) q.bid1 = doc["bid1"].GetDouble();
+    if (doc.HasMember("bid2") && doc["bid2"].IsNumber()) q.bid2 = doc["bid2"].GetDouble();
+    if (doc.HasMember("bid3") && doc["bid3"].IsNumber()) q.bid3 = doc["bid3"].GetDouble();
+    if (doc.HasMember("bid4") && doc["bid4"].IsNumber()) q.bid4 = doc["bid4"].GetDouble();
+    if (doc.HasMember("bid5") && doc["bid5"].IsNumber()) q.bid5 = doc["bid5"].GetDouble();
+    if (doc.HasMember("ask1") && doc["ask1"].IsNumber()) q.ask1 = doc["ask1"].GetDouble();
+    if (doc.HasMember("ask2") && doc["ask2"].IsNumber()) q.ask2 = doc["ask2"].GetDouble();
+    if (doc.HasMember("ask3") && doc["ask3"].IsNumber()) q.ask3 = doc["ask3"].GetDouble();
+    if (doc.HasMember("ask4") && doc["ask4"].IsNumber()) q.ask4 = doc["ask4"].GetDouble();
+    if (doc.HasMember("ask5") && doc["ask5"].IsNumber()) q.ask5 = doc["ask5"].GetDouble();
+
+    if (doc.HasMember("bid_vol1") && doc["bid_vol1"].IsInt64()) q.bid_vol1 = doc["bid_vol1"].GetInt64();
+    if (doc.HasMember("bid_vol2") && doc["bid_vol2"].IsInt64()) q.bid_vol2 = doc["bid_vol2"].GetInt64();
+    if (doc.HasMember("bid_vol3") && doc["bid_vol3"].IsInt64()) q.bid_vol3 = doc["bid_vol3"].GetInt64();
+    if (doc.HasMember("bid_vol4") && doc["bid_vol4"].IsInt64()) q.bid_vol4 = doc["bid_vol4"].GetInt64();
+    if (doc.HasMember("bid_vol5") && doc["bid_vol5"].IsInt64()) q.bid_vol5 = doc["bid_vol5"].GetInt64();
+    if (doc.HasMember("ask_vol1") && doc["ask_vol1"].IsInt64()) q.ask_vol1 = doc["ask_vol1"].GetInt64();
+    if (doc.HasMember("ask_vol2") && doc["ask_vol2"].IsInt64()) q.ask_vol2 = doc["ask_vol2"].GetInt64();
+    if (doc.HasMember("ask_vol3") && doc["ask_vol3"].IsInt64()) q.ask_vol3 = doc["ask_vol3"].GetInt64();
+    if (doc.HasMember("ask_vol4") && doc["ask_vol4"].IsInt64()) q.ask_vol4 = doc["ask_vol4"].GetInt64();
+    if (doc.HasMember("ask_vol5") && doc["ask_vol5"].IsInt64()) q.ask_vol5 = doc["ask_vol5"].GetInt64();
 
     res.push_back(q);
     return res;

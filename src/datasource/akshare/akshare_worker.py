@@ -12,6 +12,11 @@ def get_futures_quote(symbol):
             return {"error": f"No data found for {symbol}"}
 
         row = futures_spot_price_df.iloc
+
+        # --- 尝试映射深度数据 ---
+        # 注意：你需要打印 row.keys() 来确认 AKShare 实际返回的列名
+        # 例如，它可能是 '买价', '卖价', '买量', '卖量'
+        # AKShare 的实时接口可能不包含完整的5档深度，只有最优一档
         quote = {
             "instrument": row.get("合约", symbol),
             "last": float(row.get("最新价", 0)),
@@ -19,8 +24,34 @@ def get_futures_quote(symbol):
             "high": float(row.get("最高价", 0)),
             "low": float(row.get("最低价", 0)),
             "volume": int(row.get("成交量", 0)),
-            "open_interest": float(row.get("持仓量", 0))
+            "open_interest": float(row.get("持仓量", 0)),
+            
+            # 尝试映射最优一档深度
+            # 注意：AKShare 列名通常是中文
+            "bid1": float(row.get("买价", 0)), 
+            "ask1": float(row.get("卖价", 0)),
+            "bid_vol1": int(row.get("买量", 0)), # 这些列很可能不存在
+            "ask_vol1": int(row.get("卖量", 0)), # 这些列很可能不存在
         }
+        
+        # --- 关键：如果深度数据列不存在，需要设置默认值 ---
+        # 为了防止 C++ 代码访问不存在的 JSON 键导致崩溃，设置默认值
+        if "bid1" not in quote:
+            quote.update({
+                "bid1": 0.0, "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
+                "ask1": 0.0, "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
+                "bid_vol1": 0, "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
+                "ask_vol1": 0, "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
+            })
+        # 如果存在，则补充其他档位的默认值（AKShare 可能只提供一档）
+        else:
+            quote.update({
+                "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
+                "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
+                "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
+                "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
+            })
+
         return quote
 
     except Exception as e:
