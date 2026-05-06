@@ -8,7 +8,7 @@
 #include <unordered_set>
 #include <mutex>
 
-class SinaDataSource : public IDataSource {
+class AkshareDataSource : public IDataSource {
 public:
     std::string getName() const override { return "SINA"; }
     std::vector<TickData> fetchQuotes(const std::string& instrument) override;

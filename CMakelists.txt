@@ -9,7 +9,8 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/wd4828)
 endif()
-set(RapidJSON_INCLUDE_DIR "C:/Users/naiyu/source/repos/uy1243/demo/vcpkg_installed/vcpkg/pkgs/rapidjson_x64-windows/include")
+#set(RapidJSON_INCLUDE_DIR "C:/Users/naiyu/source/repos/uy1243/demo/vcpkg_installed/vcpkg/pkgs/rapidjson_x64-windows/include")
+set(RapidJSON_INCLUDE_DIR "D:/hil33/vcpkg/packages/rapidjson_x64-windows/include")
 set(MYSQL_PATH "C:/Program Files/MySQL/MySQL Connector C++ 9.7")
 
 add_definitions(-DCURL_STATICLIB)
@@ -42,6 +43,7 @@ add_executable(trader
   "src/status/account.cpp"
 src/strategy/strategy3.cpp
 src/backtest/backtest_engine.cpp
+src/datasource/akshare/akshare_data_source.cpp
 src/utils/logger.cpp "src/datasource/mysql_db/db.hpp" "src/datasource/market_types.h"
 "src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
 "src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"

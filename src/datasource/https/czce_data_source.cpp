@@ -107,3 +107,11 @@ std::vector<TickData> CzceDataSource::fetchQuotes(const std::string& commodity) 
     }
     return res;
 }
+
+std::multimap<std::string, TickData>  CzceDataSource::fetchHistoricalData(
+    const std::string& instrument,
+    const std::string& start_time,
+    const std::string& end_time) {
+    return {};
+
+}

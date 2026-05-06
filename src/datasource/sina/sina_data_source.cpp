@@ -1,13 +1,24 @@
-#include "sina_data_source.h"
+﻿#include "sina_data_source.h"
 #include <sstream>
 #include <iostream>
 #include <windows.h>
 #include <winhttp.h>
 #include <string>
+#include <vector>
+#include <thread>
+#include <mutex>
+#include <unordered_set>
+#include <sstream>
 
 #pragma comment(lib, "winhttp.lib")
 
-std::string GBKToUTF8(const std::string& gbk) {
+using namespace std;
+
+std::string GBKToUTF8(const std::string& gbk)
+{
+    // 【修复】GBK转UTF8 修复空字符串崩溃问题
+    if (gbk.empty()) return "";
+
     int len = MultiByteToWideChar(936, 0, gbk.c_str(), -1, nullptr, 0);
     std::wstring wstr(len, L'\0');
     MultiByteToWideChar(936, 0, gbk.c_str(), -1, &wstr[0], len);
@@ -15,62 +26,70 @@ std::string GBKToUTF8(const std::string& gbk) {
     len = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
     std::string utf8(len, '\0');
     WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &utf8[0], len, nullptr, nullptr);
+
     return utf8;
 }
 
 namespace {
-    size_t write(void* c, size_t s, size_t n, std::string* o) {
-        o->append((char*)c, s * n);
-        return s * n;
-    }
 
-    TickData parse_fut_tick(const std::string& raw_line, const std::string& code) {
+    TickData parse_fut_tick(const std::string& data, const std::string& instrument)
+    {
         TickData t{};
         t.source = "SINA";
-        t.instrument = code;
+        t.instrument = instrument;
 
-        std::istringstream iss(raw_line);
-        std::string time_str;
-        if (std::getline(iss, time_str, ',') &&
-            (iss >> t.open >> t.high >> t.low >> t.last >> t.volume)) {
-            t.time = time_str;
-            t.bid1 = t.last - 0.5;
-            t.ask1 = t.last + 0.5;
+        vector<string> fields;
+        stringstream ss(data);
+        string field;
+
+        while (getline(ss, field, ',')) {
+            fields.push_back(field);
+        }
+
+        // ===================== 【核心修复】新浪 M0 真实字段顺序 =====================
+        if (fields.size() >= 17) {
+            try {
+                t.open = atof(fields[2].c_str());      // 开盘
+                t.high = atof(fields[3].c_str());      // 最高
+                t.low = atof(fields[4].c_str());       // 最低
+                t.last = atof(fields[8].c_str());      // 最新价 ✅正确位置
+                t.bid1 = atof(fields[6].c_str());      // 买一
+                t.ask1 = atof(fields[7].c_str());      // 卖一
+                t.volume = atoll(fields[13].c_str());  // 成交量
+                t.open_interest = atoll(fields[12].c_str());
+                t.time = fields[16];                   // 日期 ✅正确位置
+            }
+            catch (...) {
+                // 不崩溃
+            }
         }
         return t;
     }
 
-    // WinHttp 实现 GET 请求
     bool WinHttpGet(
         const std::wstring& host,
         const std::wstring& path,
-        const std::wstring& referer,
-        std::string& out_response
-    ) {
+        std::string& out_response)
+    {
         HINTERNET hSession = WinHttpOpen(
             L"Mozilla/5.0",
             WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
             WINHTTP_NO_PROXY_NAME,
-            WINHTTP_NO_PROXY_BYPASS, 0
-        );
+            WINHTTP_NO_PROXY_BYPASS, 0);
+
         if (!hSession) return false;
 
         HINTERNET hConnect = WinHttpConnect(hSession, host.c_str(), INTERNET_DEFAULT_HTTP_PORT, 0);
         if (!hConnect) { WinHttpCloseHandle(hSession); return false; }
 
         HINTERNET hRequest = WinHttpOpenRequest(
-            hConnect,
-            L"GET",
-            path.c_str(),
-            nullptr,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            0
-        );
+            hConnect, L"GET", path.c_str(), nullptr,
+            WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
+
         if (!hRequest) { WinHttpCloseHandle(hConnect); WinHttpCloseHandle(hSession); return false; }
 
-        // 添加 Referer
-        WinHttpAddRequestHeaders(hRequest, referer.c_str(), (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
+        const wchar_t* referer = L"Referer: https://finance.sina.com.cn/";
+        WinHttpAddRequestHeaders(hRequest, referer, (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
 
         BOOL sent = WinHttpSendRequest(hRequest, WINHTTP_NO_REQUEST_DATA, 0, nullptr, 0, 0, 0);
         if (!sent) { WinHttpCloseHandle(hRequest); WinHttpCloseHandle(hConnect); WinHttpCloseHandle(hSession); return false; }
@@ -93,63 +112,36 @@ namespace {
     }
 }
 
-// 核心：抓取行情（WinHttp 版）
-std::vector<TickData> SinaDataSource::fetchQuotes(const std::string& instrument) {
-    std::vector<TickData> res;
+vector<TickData> SinaDataSource::fetchQuotes(const string& instrument)
+{
+    cout << "[SINA] 拉取: " << instrument << endl;
+    vector<TickData> res;
 
-    std::wstring host = L"hq.sinajs.cn";
-    std::wstring path = L"/list=NF_" + std::wstring(instrument.begin(), instrument.end());
-    std::wstring referer = L"Referer: http://finance.sina.com.cn";
+    wstring host = L"hq.sinajs.cn";
+    wstring path = L"/list=nf_" + wstring(instrument.begin(), instrument.end());
 
-    std::string response;
-    if (!WinHttpGet(host, path, referer, response)) {
-        std::cerr << "SINA: WinHttp 请求失败 " << instrument << std::endl;
-        return res;
-    }
+    string response;
+    WinHttpGet(host, path, response);
+	std::cout << " [SINA] 原始响应: " << response << std::endl;
 
-    size_t pos = response.find("=\"");
-    if (pos != std::string::npos) {
-        std::string data = response.substr(pos + 2);
-        if (!data.empty() && data.back() == '"') data.pop_back();
+    size_t pos1 = response.find("=\"");
+    size_t pos2 = response.find("\";", pos1);
+
+    if (pos1 != string::npos && pos2 != string::npos) {
+        string data = response.substr(pos1 + 2, pos2 - pos1 - 2);
         data = GBKToUTF8(data);
-        res.push_back(parse_fut_tick(data, instrument));
-    }
 
+        TickData tick = parse_fut_tick(data, instrument);
+        if (tick.last > 0) {
+            res.push_back(tick);
+        }
+    }
     return res;
 }
 
-// 以下完全不变，保持原有接口
-void SinaDataSource::subscribe(const std::string& instrument) {
-    std::lock_guard<std::mutex> lock(subs_mtx_);
-    subscriptions_.insert(instrument);
-}
-
-void SinaDataSource::start() {
-    if (running_.exchange(true)) return;
-    worker_thread_ = std::thread(&SinaDataSource::run_loop, this);
-}
-
-void SinaDataSource::stop() {
-    running_ = false;
-    if (worker_thread_.joinable()) {
-        worker_thread_.join();
-    }
-}
-
-void SinaDataSource::run_loop() {
-    while (running_) {
-        std::unordered_set<std::string> current_subs;
-        {
-            std::lock_guard<std::mutex> lock(subs_mtx_);
-            current_subs = subscriptions_;
-        }
-
-        for (const auto& inst : current_subs) {
-            auto ticks = fetchQuotes(inst);
-            if (!ticks.empty()) {
-                std::cout << "SINA Update: " << ticks[0].instrument << " @ " << ticks[0].last << std::endl;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
+std::multimap<std::string, TickData> SinaDataSource::fetchHistoricalData(
+    const std::string& instrument,
+    const std::string& start_time,
+    const std::string& end_time) {
+    return {};
 }

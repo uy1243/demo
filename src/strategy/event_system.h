@@ -68,7 +68,7 @@ class EventSystem {
 public:
     template<typename EventType>
     void subscribe(const std::string& event_type, EventCallback<EventType> callback) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         callbacks_[event_type].push_back([callback](const Event& e) {
             callback(static_cast<const EventType&>(e));
             });
@@ -76,7 +76,7 @@ public:
 
     void publish(const Event& event) {
 		std::cout << "Publishing event: " << event.type << std::endl;
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         auto it = callbacks_.find(event.type);
 		std::cout << "Found callbacks for event type: " << event.type << ", count: " << (it != callbacks_.end() ? it->second.size() : 0) << std::endl;
         if (it != callbacks_.end()) {
@@ -88,5 +88,5 @@ public:
 
 private:
     std::unordered_map<std::string, std::vector<std::function<void(const Event&)>>> callbacks_;
-    std::mutex mutex_;
+    std::recursive_mutex mutex_;
 };

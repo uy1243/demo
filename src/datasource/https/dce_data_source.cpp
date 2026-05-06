@@ -45,6 +45,14 @@ namespace { // 私有辅助函数
     }
 } // namespace
 
+std::multimap<std::string, TickData>  DceDataSource::fetchHistoricalData(
+    const std::string& instrument,
+    const std::string& start_time,
+    const std::string& end_time) {
+    return {};
+
+}
+
 std::vector<TickData> DceDataSource::fetchQuotes(const std::string& commodity) {
     std::vector<TickData> res;
     std::wstring host = L"www.dce.com.cn";
@@ -102,7 +110,7 @@ std::vector<TickData> DceDataSource::fetchQuotes(const std::string& commodity) {
 
         if (item.HasMember("updateTime") && item["updateTime"].IsString())
             q.time = item["updateTime"].GetString();
-
+		std::cout << "Got DCE quote: " << q.instrument << " last=" << q.last << " time=" << q.time << std::endl;
         res.push_back(q);
     }
     return res;

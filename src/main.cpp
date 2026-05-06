@@ -1,4 +1,4 @@
-#include "datasource/ctp/md_spi.h"
+﻿#include "datasource/ctp/md_spi.h"
 #include "datasource/ctp/trader_spi.h"
 #include "utils/logger.h"
 #include "datasource/market_data.h"
@@ -13,6 +13,8 @@
 #include "strategy/strategy.h"
 #include "datasource/https/dce_data_source.h"
 #include "datasource/https/czce_data_source.h"
+#include "datasource/sina/sina_data_source.h"
+#include "datasource/akshare/akshare_data_source.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -70,6 +72,19 @@ int main(int argc, char* argv[]) {
     // --- 初始化市场服务 ---
     auto& market_service = MarketService::Instance();
     market_service.initialize(&event_system);
+    try {
+        market_service.addDataSource(std::make_unique<SinaDataSource>());
+
+        std::cout << "[Main] 数据源连接成功" << std::endl;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[Main] 连接失败: " << e.what() << std::endl;
+        std::cerr << "[Main] 将使用模拟数据继续回测" << std::endl;
+
+        // 如果 MySQL 连接失败，使用模拟数据源
+
+    }
+	//market_service.addDataSource(std::make_unique<DceDataSource>());
 
     // --- 订阅事件 ---
     event_system.subscribe<OrderUpdateEvent>("ORDER_UPDATE",
