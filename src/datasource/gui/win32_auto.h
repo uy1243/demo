@@ -17,7 +17,6 @@ public:
 
     void initialize(EventSystem* event_system);
 
-private:
     // 1. 通过标题查找窗口
     static HWND find_window(const std::wstring& title);
 

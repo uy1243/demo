@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
     auto& market_service = MarketService::Instance();
     market_service.initialize(&event_system);
     try {
-        market_service.addDataSource(std::make_unique<AkshareDataSource>());
+        market_service.addDataSource(std::make_unique<SinaDataSource>());
 
         std::cout << "[Main] 数据源连接成功" << std::endl;
     }

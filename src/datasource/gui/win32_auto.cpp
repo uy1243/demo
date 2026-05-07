@@ -227,3 +227,30 @@ OrderStatus Win32Auto::convertApiStatus(int api_status) {
     default: return OrderStatus::REJECTED;
     }
 }
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    wchar_t title[256] = { 0 }; // 初始化为0
+    // 加上大括号，确保逻辑清晰
+    if (GetWindowTextW(hwnd, title, 256)) {
+        std::wcout << L"句柄: " << hwnd << L" | 标题: " << title << std::endl;
+    }
+    // 必须返回 TRUE，告诉系统继续找下一个窗口
+    return TRUE;
+}
+
+int main()
+{
+    std::cout << "=== 开始枚举所有顶层窗口 ===" << std::endl;
+    EnumWindows(EnumWindowsProc, 0);
+
+    HWND hd = Win32Auto::find_window(L"Vector CANdb++ Editor - C:\Users\Administrator\Desktop\ADASDBC_receive.dbc - [Overall View]");
+    if(!hd){
+        std::cout << "未找到窗口" << std::endl;
+	}
+    else{
+        std::cout << "找到窗口: " << hd << std::endl;
+    }
+    system("pause");
+
+    return 0;
+}

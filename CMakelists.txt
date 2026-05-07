@@ -38,48 +38,49 @@ link_directories(
 link_directories(${MYSQL_PATH}/lib64
                 ${MYSQL_PATH}/lib64/vs14/)
 # 生成可执行文件
-add_executable(trader
-    src/main.cpp
-  "src/status/account.cpp"
-src/strategy/strategy3.cpp
-src/backtest/backtest_engine.cpp
-"src/datasource/akshare/akshare_data_source.cpp"
-src/utils/logger.cpp "src/datasource/mysql_db/db.hpp" "src/datasource/market_types.h"
-"src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
-"src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"
-"src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h"
-"src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" 
-"src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" 
-"src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h"
-"src/datasource/gui/win32_auto.h" "src/datasource/gui/win32_auto.cpp" "src/backtest/mock_data_source.h" "src/backtest/mock_trader.h")
+#add_executable(trader
+#    src/main.cpp
+#  "src/status/account.cpp"
+#src/strategy/strategy3.cpp
+#src/backtest/backtest_engine.cpp
+#"src/datasource/akshare/akshare_data_source.cpp"
+#src/utils/logger.cpp  "src/datasource/market_types.h"
+#"src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
+#"src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"
+#"src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h"
+#"src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" 
+#"src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" 
+#"src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h"
+#"src/datasource/gui/win32_auto.h" "src/datasource/gui/win32_auto.cpp" "src/backtest/mock_data_source.h" "src/backtest/mock_trader.h")
 
-target_link_libraries(trader PRIVATE 
-    thosttraderapi_se
-    thostmduserapi_se
-      mysqlcppconn
-    mysqlcppconnx
-)
+#target_link_libraries(trader PRIVATE 
+#    thosttraderapi_se
+#    thostmduserapi_se
+#      mysqlcppconn
+#    mysqlcppconnx
+#)
 
-add_executable(backtest
-    src/backtest_main.cpp
-  "src/status/account.cpp"
-src/strategy/strategy3.cpp
-src/backtest/backtest_engine.cpp
-src/utils/logger.cpp "src/datasource/mysql_db/db.hpp" "src/datasource/market_types.h"
-"src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
-"src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"
-"src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h"
-"src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" 
-"src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" 
-"src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h"
-"src/datasource/gui/win32_auto.h" "src/datasource/gui/win32_auto.cpp" "src/backtest/mock_data_source.h" "src/backtest/mock_trader.h")
+#add_executable(backtest
+ #   src/backtest_main.cpp
+ # "src/status/account.cpp"
+#src/strategy/strategy3.cpp
+#src/backtest/backtest_engine.cpp
+#src/utils/logger.cpp  "src/datasource/market_types.h"
+#"src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
+#"src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"
+#"src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h"
+#"src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" 
+#"src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" 
+#"src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h"
+#"src/datasource/gui/win32_auto.h" "src/datasource/gui/win32_auto.cpp" "src/backtest/mock_data_source.h" "src/backtest/mock_trader.h")
 
-target_link_libraries(backtest PRIVATE 
-      mysqlcppconn
-    mysqlcppconnx
-)
+#target_link_libraries(backtest PRIVATE 
+#      mysqlcppconn
+#    mysqlcppconnx
+#)
 # add_subdirectory(src/datasource)
 # add_subdirectory(src/strategy)
+add_subdirectory(src/datasource/gui)
 # ====================== 关键修复：只在 Linux 链接 pthread 和 dl ======================
 if(UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
@@ -94,28 +95,28 @@ if(MSVC)
 
 set(MYSQL_BIN_DIR "${MYSQL_PATH}/lib64")
 
-    set(OUT_DIR "$<TARGET_FILE_DIR:trader>")
+    #set(OUT_DIR "$<TARGET_FILE_DIR:trader>")
 
-    add_custom_command(TARGET trader POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconnx-2-vs14.dll" ${OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/src/datasource/akshare/akshare_worker.py" ${OUT_DIR}
-    )
+    #add_custom_command(TARGET trader POST_BUILD
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconnx-2-vs14.dll" ${OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/src/datasource/akshare/akshare_worker.py" ${OUT_DIR}
+    #)
 
 
-    set(TEST_OUT_DIR "$<TARGET_FILE_DIR:backtest>")
+    #set(TEST_OUT_DIR "$<TARGET_FILE_DIR:backtest>")
 
-    add_custom_command(TARGET backtest POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${TEST_OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconnx-2-vs14.dll" ${TEST_OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${TEST_OUT_DIR}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${TEST_OUT_DIR}
-    )
+    #add_custom_command(TARGET backtest POST_BUILD
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${TEST_OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconnx-2-vs14.dll" ${TEST_OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${TEST_OUT_DIR}
+    #    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${TEST_OUT_DIR}
+    #)
 
-    file(COPY
-        ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows/thosttraderapi_se.dll
-        ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows/thostmduserapi_se.dll
-        DESTINATION ${CMAKE_BINARY_DIR})
+    #file(COPY
+    #    ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows/thosttraderapi_se.dll
+    #    ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows/thostmduserapi_se.dll
+    #    DESTINATION ${CMAKE_BINARY_DIR})
 endif()
