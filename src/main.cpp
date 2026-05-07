@@ -5,7 +5,6 @@
 #include "status/account.h"
 #include "strategy/strategy.h"
 #include "datasource/gui/win32_auto.h"
-#include "datasource/mysql_db/db.hpp"
 #include <windows.h>
 #include "strategy/event_system.h"
 #include "datasource/market_service.h"

@@ -3,65 +3,131 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include <codecvt>
 
 MysqlDataSource::MysqlDataSource(
     const std::string& host, int port,
     const std::string& user, const std::string& password,
     const std::string& database)
-    : host_(host), port_(port), user_(user), password_(password), database_(database) {
+    : host_(host), port_(port), user_(user), password_(password),
+    database_(database), driver_(nullptr), connection_(nullptr) {
+
+    try {
+        // 初始化 MySQL 驱动
+        driver_ = sql::mysql::get_mysql_driver_instance();
+        if (!driver_) {
+            std::cerr << "Failed to get MySQL driver instance" << std::endl;
+            return;
+        }
+
+        // 建立连接
+        connect();
+    }
+    catch (const sql::SQLException& e) {
+        std::cerr << "MySQL initialization error: " << e.what()
+            << " (Error code: " << e.getErrorCode()
+            << ", SQLState: " << e.getSQLState() << ")" << std::endl;
+    }
 }
 
-Session MysqlDataSource::getSession() {
+MysqlDataSource::~MysqlDataSource() {
+    disconnect();
+}
+
+void MysqlDataSource::connect() {
     try {
-        //std::string conn_str = host_ + ":" + std::to_string(port_);
-        auto config = mysqlx::SessionSettings("mysqlx://root:Yu646010@localhost:33060");
-        return Session (config);
-        //return Session(conn_str, user_, password_);
+        if (connection_) {
+            disconnect();
+        }
+
+        // 构建连接字符串
+        std::string conn_str = "tcp://" + host_ + ":" + std::to_string(port_);
+
+        // 建立连接
+        connection_ = driver_->connect(conn_str, user_, password_);
+
+        if (!connection_) {
+            std::cerr << "Failed to establish MySQL connection" << std::endl;
+            return;
+        }
+
+        // 选择数据库
+        connection_->setSchema(database_);
+
+        std::cout << "Connected to MySQL database: " << database_
+            << " at " << host_ << ":" << port_ << std::endl;
     }
-    catch (const mysqlx::abi2::r0::Error& e) {
-        std::cerr << "Failed to connect to MySQL: " << e.what() << std::endl;
-        throw; // 或者返回一个无效的 Session
+    catch (const sql::SQLException& e) {
+        std::cerr << "MySQL connection error: " << e.what()
+            << " (Error code: " << e.getErrorCode()
+            << ", SQLState: " << e.getSQLState() << ")" << std::endl;
+        connection_ = nullptr;
+    }
+}
+
+void MysqlDataSource::disconnect() {
+    if (connection_) {
+        try {
+            connection_->close();
+            delete connection_;
+            connection_ = nullptr;
+            std::cout << "Disconnected from MySQL database" << std::endl;
+        }
+        catch (const sql::SQLException& e) {
+            std::cerr << "MySQL disconnection error: " << e.what() << std::endl;
+        }
     }
 }
 
 std::vector<TickData> MysqlDataSource::fetchQuotes(const std::string& instrument) {
-    // 为了兼容 IDataSource 接口，我们可以获取最近的数据
-    // 但在回测中，我们会使用 fetchHistoricalData
     std::vector<TickData> res;
+
+    if (!connection_) {
+        std::cerr << "MySQL connection is not available" << std::endl;
+        return res;
+    }
+
     try {
-        auto session = getSession();
-        auto db = session.getSchema(database_);
-        auto table = db.getTable("a09_4day_realtime"); // 假设表名是固定的
+        // 创建 SQL 语句对象
+        sql::Statement* stmt = connection_->createStatement();
 
-        // 这里需要根据你的表结构调整 SQL 查询
-        // 假设表中有 instrument, timestamp, open, high, low, close, volume 等字段
-        auto result = table.select("*").where("instrument = :inst").bind("inst", instrument).execute();
+        // 构建查询语句
+        std::string query = "SELECT open, high, low, close, volume, tdate, instrument "
+            "FROM " + database_ + ".a09_4day_realtime "
+            "WHERE instrument = '" + instrument + "' "
+            "ORDER BY tdate DESC LIMIT 100";
 
-        Row row;
-        while ((row = result.fetchOne())) {
+        // 执行查询
+        sql::ResultSet* result = stmt->executeQuery(query);
+
+        // 遍历结果集
+        while (result->next()) {
             TickData tick;
             tick.instrument = instrument;
             tick.source = getName();
-            // 假设列顺序是 open, high, low, close, volume, time, instrument
-            // 请根据你的实际表结构调整
-            tick.last = row[3].get<double>(); // close 作为 last
-            tick.open = row[0].get<double>();
-            tick.high = row[1].get<double>();
-            tick.low = row[2].get<double>();
-            tick.volume = static_cast<long long>(row[4].get<int>());
-            tick.time = row[5].get<std::string>(); // 假设时间是第6列
 
-            // 其他字段如 bid1, ask1, open_interest 需要估算或留空
-            tick.bid1 = tick.last - 0.5; // 示例
-            tick.ask1 = tick.last + 0.5; // 示例
+            tick.open = result->getDouble("open");
+            tick.high = result->getDouble("high");
+            tick.low = result->getDouble("low");
+            tick.last = result->getDouble("close");  // 使用收盘价作为最新价
+            tick.volume = result->getInt64("volume");
+            tick.time = result->getString("tdate");
+
+            // 估算买卖价差（如果没有实际数据）
+            tick.bid1 = tick.last - 0.5;
+            tick.ask1 = tick.last + 0.5;
 
             res.push_back(tick);
         }
+
+        // 清理资源
+        delete result;
+        delete stmt;
     }
-    catch (const std::exception& e) {
-        std::cerr << "Error fetching quotes for " << instrument << ": " << e.what() << std::endl;
+    catch (const sql::SQLException& e) {
+        std::cerr << "Error fetching quotes for " << instrument << ": "
+            << e.what() << " (Error code: " << e.getErrorCode() << ")" << std::endl;
     }
+
     return res;
 }
 
@@ -70,45 +136,70 @@ std::multimap<std::string, TickData> MysqlDataSource::fetchHistoricalData(
     const std::string& start_time,
     const std::string& end_time
 ) {
-    std::multimap<std::string, TickData> sorted_ticks; // 按时间排序
+    std::multimap<std::string, TickData> sorted_ticks;
+
+    if (!connection_) {
+        std::cerr << "MySQL connection is not available" << std::endl;
+        return sorted_ticks;
+    }
+
     try {
-		std::cout << "fetchHistoricalData: instrument=" << instrument << ", database=" << database_ << ", end_time=" << end_time << std::endl;
-        auto session = getSession();
-        auto db = session.getSchema(database_);
-        auto table = db.getTable("a09_4day_realtime");
+        std::cout << "fetchHistoricalData: instrument=" << instrument
+            << ", database=" << database_
+            << ", start_time=" << start_time
+            << ", end_time=" << end_time << std::endl;
 
-        // 修改SQL查询以适应你的表结构和时间字段
-        // 假设时间字段名为 'timestamp'
-        std::string sql_query = "SELECT open, max, vol,cvol, tdate FROM " +
-            database_ + ".a09_4day_realtime";
+        // 使用预处理语句防止 SQL 注入
+        sql::PreparedStatement* pstmt = connection_->prepareStatement(
+            "SELECT open, high, low, close, volume, tdate, instrument "
+            "FROM " + database_ + ".a09_4day_realtime "
+            "WHERE instrument = ? AND tdate >= ? AND tdate <= ? "
+            "ORDER BY tdate ASC"
+        );
 
-        auto sql_res = session.sql(sql_query)
-            //.bind("start", start_time)
-            //.bind("end", end_time)
-            .execute();
+        // 绑定参数
+        pstmt->setString(1, instrument);
+        pstmt->setString(2, start_time);
+        pstmt->setString(3, end_time);
 
-        Row row;
-        while ((row = sql_res.fetchOne())) {
+        // 执行查询
+        sql::ResultSet* result = pstmt->executeQuery();
+
+        // 遍历结果集
+        while (result->next()) {
             TickData tick;
             tick.instrument = instrument;
             tick.source = getName();
-            //tick.last = row[2].get<float>(); // close
-            tick.open = row[0].get<float>();
-            tick.high = row[1].get<float>();
-            //tick.low = row[2].get<int>();
-            //tick.volume = static_cast<long long>(row[3].get<int>());
-            tick.time = row[4].get<std::string>();
 
+            tick.open = result->getDouble("open");
+            tick.high = result->getDouble("high");
+            tick.low = result->getDouble("low");
+            tick.last = result->getDouble("close");
+            tick.volume = result->getInt64("volume");
+            tick.time = result->getString("tdate");
+
+            // 估算买卖价差
             tick.bid1 = tick.last - 0.5;
             tick.ask1 = tick.last + 0.5;
 
-            sorted_ticks.emplace(tick.time, tick); // 插入 multimap，自动按键排序
+            // 插入到 multimap，按时间排序
+            sorted_ticks.emplace(tick.time, tick);
         }
+
+        // 清理资源
+        delete result;
+        delete pstmt;
+
+        std::cout << "Fetched " << sorted_ticks.size()
+            << " records for " << instrument << std::endl;
     }
-    catch (const std::exception& e) {
+    catch (const sql::SQLException& e) {
         std::cerr << "Error fetching historical data for " << instrument
             << " from " << start_time << " to " << end_time
-            << ": " << e.what() << std::endl;
+            << ": " << e.what()
+            << " (Error code: " << e.getErrorCode()
+            << ", SQLState: " << e.getSQLState() << ")" << std::endl;
     }
+
     return sorted_ticks;
 }

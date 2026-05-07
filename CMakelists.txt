@@ -9,13 +9,13 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/wd4828)
 endif()
-set(RapidJSON_INCLUDE_DIR "C:/Users/naiyu/source/repos/uy1243/demo/vcpkg_installed/vcpkg/pkgs/rapidjson_x64-windows/include")
-#set(RapidJSON_INCLUDE_DIR "D:/hil33/vcpkg/packages/rapidjson_x64-windows/include")
+#set(RapidJSON_INCLUDE_DIR "C:/Users/naiyu/source/repos/uy1243/demo/vcpkg_installed/vcpkg/pkgs/rapidjson_x64-windows/include")
+set(RapidJSON_INCLUDE_DIR "D:/hil33/vcpkg/packages/rapidjson_x64-windows/include")
 set(MYSQL_PATH "C:/Program Files/MySQL/MySQL Connector C++ 9.7")
 
 add_definitions(-DCURL_STATICLIB)
 # 🔥 头文件路径（解决 C1083 错误）
-include_directories(${MYSQL_PATH}/include
+include_directories(${MYSQL_PATH}/include/jdbc
 ${RapidJSON_INCLUDE_DIR})
 
 # 🔥 库路径
