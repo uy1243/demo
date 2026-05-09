@@ -71,6 +71,16 @@ void MarketService::run_loop() {
                 }
                 if (source->getName() == "SINA" && TradingHours::isMarketOpen("sr")) {
                     auto ticks = source->fetchQuotes("M2609"); // 传入关注的品种
+                    if (!ticks.empty()) {
+                        // 将Sina数据保存到MySQL
+                        bool success = mysql_ds.saveTickDataBatchToDB(sina_ticks);
+                        if (success) {
+                            std::cout << "数据已成功保存到MySQL" << std::endl;
+                        }
+                        else {
+                            std::cout << "保存数据失败" << std::endl;
+                        }
+                    }
                     cache_.update(ticks);
                     // 如果获取到了数据，发布更新事件
                     if (!ticks.empty() && event_system_) {

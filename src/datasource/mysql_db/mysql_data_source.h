@@ -28,6 +28,10 @@ public:
         const std::string& end_time
     );
 
+    bool saveTickDataToDB(const TickData& tick);
+    bool saveTickDataBatchToDB(const std::vector<TickData>& ticks);
+    bool createTickDataTable();  // 创建用于存储tick数据的表
+
 private:
     std::string host_;
     int port_;
