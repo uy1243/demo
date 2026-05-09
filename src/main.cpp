@@ -5,7 +5,6 @@
 #include "status/account.h"
 #include "strategy/strategy.h"
 #include "datasource/gui/win32_auto.h"
-#include "datasource/mysql_db/db.hpp"
 #include <windows.h>
 #include "strategy/event_system.h"
 #include "datasource/market_service.h"
@@ -73,7 +72,7 @@ int main(int argc, char* argv[]) {
     auto& market_service = MarketService::Instance();
     market_service.initialize(&event_system);
     try {
-        market_service.addDataSource(std::make_unique<AkshareDataSource>());
+        market_service.addDataSource(std::make_unique<SinaDataSource>());
 
         std::cout << "[Main] 数据源连接成功" << std::endl;
     }

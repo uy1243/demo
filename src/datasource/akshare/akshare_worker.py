@@ -2,128 +2,204 @@ import sys
 import json
 import akshare as ak
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
+
+def get_available_symbols():
+    """获取可用的期货合约列表"""
+    try:
+        # 获取期货合约表
+        symbols_df = ak.futures_symbol_table()
+        return symbols_df['symbol'].tolist() if not symbols_df.empty else []
+    except:
+        try:
+            # 尝试另一种方式获取合约列表
+            main_contract_list = ak.futures_main_sina()
+            if not main_contract_list.empty:
+                return main_contract_list['symbol'].tolist()
+        except:
+            pass
+        return []
 
 def get_futures_quote(symbol):
-    print("symbol:::", symbol)
-    """获取期货实时行情 华金期货-博易云交易版"""
-    
-    futures_spot_price_df = ak.futures_spot_price(symbol[-1])
-    if futures_spot_price_df.empty:
-        return {"error": f"No data found for {symbol}"}
-
-    row = futures_spot_price_df.iloc
-
-    # --- 尝试映射深度数据 ---
-    # 注意：你需要打印 row.keys() 来确认 AKShare 实际返回的列名
-    # 例如，它可能是 '买价', '卖价', '买量', '卖量'
-    # AKShare 的实时接口可能不包含完整的5档深度，只有最优一档
-    quote = {
-        "instrument": row.get("合约", symbol),
-        "last": float(row.get("最新价", 0)),
-        "open": float(row.get("开盘价", 0)),
-        "high": float(row.get("最高价", 0)),
-        "low": float(row.get("最低价", 0)),
-        "volume": int(row.get("成交量", 0)),
-        "open_interest": float(row.get("持仓量", 0)),
-            
-        # 尝试映射最优一档深度
-        # 注意：AKShare 列名通常是中文
-        "bid1": float(row.get("买价", 0)), 
-        "ask1": float(row.get("卖价", 0)),
-        "bid_vol1": int(row.get("买量", 0)), # 这些列很可能不存在
-        "ask_vol1": int(row.get("卖量", 0)), # 这些列很可能不存在
-    }
+    """获取期货实时报价"""
+    try:
+        # 标准化合约代码格式（移除可能的前缀）
+        normalized_symbol = symbol.upper().strip()
         
-    # --- 关键：如果深度数据列不存在，需要设置默认值 ---
-    # 为了防止 C++ 代码访问不存在的 JSON 键导致崩溃，设置默认值
-    if "bid1" not in quote:
-        quote.update({
-            "bid1": 0.0, "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
-            "ask1": 0.0, "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
-            "bid_vol1": 0, "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
-            "ask_vol1": 0, "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
-        })
-    # 如果存在，则补充其他档位的默认值（AKShare 可能只提供一档）
-    else:
-        quote.update({
-            "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
-            "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
-            "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
-            "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
-        })
-
-    return quote
-
+        # 检查合约是否存在
+        available_symbols = get_available_symbols()
+        if available_symbols and normalized_symbol not in available_symbols:
+            # 尝试匹配部分名称
+            matched_symbols = [s for s in available_symbols if normalized_symbol in s or s in normalized_symbol]
+            if matched_symbols:
+                normalized_symbol = matched_symbols[0]  # 使用第一个匹配的符号
+                print(f"Info: Using matched symbol {normalized_symbol} for {symbol}", file=sys.stderr)
+        
+        print(f"Debug: Looking for symbol {normalized_symbol}", file=sys.stderr)
+        
+        # 方案1: 尝试期货现货接口（最常用的实时数据接口）
+        try:
+            print("Trying futures_zh_spot...", file=sys.stderr)
+            df = ak.futures_zh_spot()
+            if not df.empty:
+                # 尝试匹配合约
+                filtered_df = df[df['symbol'].str.contains(normalized_symbol.replace('M', ''), case=False, na=False)]
+                if filtered_df.empty:
+                    # 尝试原始符号
+                    filtered_df = df[df['symbol'].str.upper() == normalized_symbol]
+                
+                if not filtered_df.empty:
+                    row = filtered_df.iloc[-1]
+                    quote = {
+                        "instrument": normalized_symbol,
+                        "last": float(row.get("current", 0) or row.get("price", 0) or 0),
+                        "open": float(row.get("open", 0) or 0),
+                        "high": float(row.get("high", 0) or 0),
+                        "low": float(row.get("low", 0) or 0),
+                        "volume": int(row.get("volume", 0) or 0),
+                        "open_interest": int(row.get("open_interest", 0) or 0),
+                        "bid1": float(row.get("bid", 0) or 0),
+                        "ask1": float(row.get("ask", 0) or 0),
+                        "bid_vol1": 0,
+                        "ask_vol1": 0,
+                        "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
+                        "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
+                        "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
+                        "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
+                    }
+                    
+                    # 如果价格还是0，说明数据不可靠
+                    if quote["last"] == 0:
+                        print(f"Warning: Got zero prices for {normalized_symbol}, checking other sources", file=sys.stderr)
+                    else:
+                        print(f"Success: Got data for {normalized_symbol}", file=sys.stderr)
+                        return quote
+        except Exception as e:
+            print(f"futures_zh_spot failed: {e}", file=sys.stderr)
+        
+        # 方案2: 尝试期货主力合约接口
+        try:
+            print("Trying futures_main_sina...", file=sys.stderr)
+            df = ak.futures_main_sina(symbol=normalized_symbol)
+            if not df.empty:
+                row = df.iloc[-1]
+                quote = {
+                    "instrument": normalized_symbol,
+                    "last": float(row.get("current_price", 0) or row.get("close", 0) or 0),
+                    "open": float(row.get("open_price", 0) or row.get("open", 0) or 0),
+                    "high": float(row.get("highest_price", 0) or row.get("high", 0) or 0),
+                    "low": float(row.get("lowest_price", 0) or row.get("low", 0) or 0),
+                    "volume": int(row.get("volume", 0) or 0),
+                    "open_interest": int(row.get("open_interest", 0) or 0),
+                    "bid1": 0.0,
+                    "ask1": 0.0,
+                    "bid_vol1": 0,
+                    "ask_vol1": 0,
+                    "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
+                    "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
+                    "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
+                    "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
+                }
+                
+                if quote["last"] != 0:
+                    print(f"Success: Got data from futures_main_sina for {normalized_symbol}", file=sys.stderr)
+                    return quote
+        except Exception as e:
+            print(f"futures_main_sina failed: {e}", file=sys.stderr)
+        
+        # 方案3: 尝试获取日线数据作为最新参考
+        try:
+            print("Trying futures_zh_daily_sina as fallback...", file=sys.stderr)
+            df = ak.futures_zh_daily_sina(symbol=normalized_symbol)
+            if not df.empty:
+                row = df.iloc[-1]
+                quote = {
+                    "instrument": normalized_symbol,
+                    "last": float(row.get("close", 0)),
+                    "open": float(row.get("open", 0)),
+                    "high": float(row.get("high", 0)),
+                    "low": float(row.get("low", 0)),
+                    "volume": int(row.get("volume", 0)),
+                    "open_interest": 0,
+                    "bid1": float(row.get("close", 0)) - 0.5 if float(row.get("close", 0)) > 0 else 0.0,
+                    "ask1": float(row.get("close", 0)) + 0.5 if float(row.get("close", 0)) > 0 else 0.0,
+                    "bid_vol1": 0,
+                    "ask_vol1": 0,
+                    "bid2": 0.0, "bid3": 0.0, "bid4": 0.0, "bid5": 0.0,
+                    "ask2": 0.0, "ask3": 0.0, "ask4": 0.0, "ask5": 0.0,
+                    "bid_vol2": 0, "bid_vol3": 0, "bid_vol4": 0, "bid_vol5": 0,
+                    "ask_vol2": 0, "ask_vol3": 0, "ask_vol4": 0, "ask_vol5": 0,
+                }
+                
+                if quote["last"] != 0:
+                    print(f"Success: Got daily data as fallback for {normalized_symbol}", file=sys.stderr)
+                    return quote
+        except Exception as e:
+            print(f"futures_zh_daily_sina fallback failed: {e}", file=sys.stderr)
+        
+        return {"error": f"无法获取 {symbol} 的有效数据，所有数据源都返回零值或失败"}
+        
+    except Exception as e:
+        return {"error": f"获取数据时发生异常: {str(e)}"}
 
 def get_historical_data(instrument, start_date, end_date):
-    """获取期货历史日线数据"""
+    """获取历史数据"""
     try:
-        # AKShare 获取单个合约历史数据的接口
-        # instrument: 例如 "M2609" (注意：这里可能需要大写或特定格式，需测试)
-        # start_date, end_date: 格式 "YYYYMMDD"
+        # 标准化合约代码
+        normalized_instrument = instrument.upper().strip()
         
-        # 尝试获取数据
-        # 注意：AKShare 的接口可能会因为交易所或合约代码格式略有不同
-        df = ak.futures_zh_daily_sina(symbol=instrument, start_date=start_date, end_date=end_date)
+        print(f"Getting historical data for {normalized_instrument} from {start_date} to {end_date}", file=sys.stderr)
         
-        if df.empty:
-            return {"error": f"No historical data found for {instrument} between {start_date} and {end_date}"}
+        # 尝试期货日线数据
+        try:
+            df = ak.futures_zh_daily_sina(symbol=normalized_instrument)
+            if not df.empty:
+                df["date"] = pd.to_datetime(df["date"])
+                df = df[(df["date"] >= pd.to_datetime(start_date)) & (df["date"] <= pd.to_datetime(end_date))]
+                
+                ticks = []
+                for _, row in df.iterrows():
+                    ticks.append({
+                        "time": row["date"].strftime("%Y-%m-%d %H:%M:%S"),
+                        "instrument": normalized_instrument,
+                        "open": float(row.get("open", 0)),
+                        "high": float(row.get("high", 0)),
+                        "low": float(row.get("low", 0)),
+                        "last": float(row.get("close", 0)),
+                        "volume": int(row.get("volume", 0)),
+                        "open_interest": int(row.get("open_interest", 0)) if pd.notna(row.get("open_interest", 0)) else 0
+                    })
+                
+                if ticks:
+                    print(f"Success: Got {len(ticks)} historical records", file=sys.stderr)
+                    return {"ticks": ticks}
+                else:
+                    print("No historical data found in date range", file=sys.stderr)
+        except Exception as e:
+            print(f"Historical data query failed: {e}", file=sys.stderr)
         
-        # 将 DataFrame 转换为 TickData 列表
-        # 注意：历史数据的列名可能与实时数据不同，例如 "date", "open", "high", "low", "close", "volume"
-        tick_list = []
-        for index, row in df.iterrows():
-            # 将每天的数据转换为 TickData 结构
-            # 注意：这里假设历史数据的收盘价作为 'last' 价格
-            tick = {
-                # 时间戳可能需要根据实际数据调整，这里用日期字符串填充
-                "time": row.get("date", ""), 
-                "instrument": instrument,
-                "open": float(row.get("open", 0)),
-                "high": float(row.get("high", 0)),
-                "low": float(row.get("low", 0)),
-                "last": float(row.get("close", 0)), # 使用收盘价作为 last
-                "volume": int(row.get("volume", 0)),
-                # 历史日线数据通常没有持仓量字段，可能需要从其他接口获取或留空
-                "open_interest": float(row.get("open_interest", 0)) if "open_interest" in row else 0 
-            }
-            tick_list.append(tick)
-
-        return {"ticks": tick_list}
-
+        return {"error": f"无法获取 {instrument} 在 {start_date} 到 {end_date} 的历史数据"}
+        
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"获取历史数据时发生异常: {str(e)}"}
 
+# ========================= 主入口 =========================
 if __name__ == "__main__":
-    print("argv:::",sys.argv)
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "len<2,Missing action argument (quote/hist)"}))
+        print(json.dumps({"error": "请输入: quote | hist"}))
         sys.exit(1)
 
-    action = sys.argv[1].lower()  # 获取第一个参数并转换为小写
-    # 根据第一个参数决定执行哪个功能
+    action = sys.argv[1]
+
     if action == "quote":
-        if len(sys.argv) < 3:
-            print(json.dumps({"error": "Missing symbol argument for quote"}))
-            sys.exit(1)
-        symbol = sys.argv
-        result = get_futures_quote(symbol)
-        print(json.dumps(result))
+        symbol = sys.argv[2]
+        print(f"Requesting quote for: {symbol}", file=sys.stderr)  # Debug info
+        res = get_futures_quote(symbol)
+        print(json.dumps(res, ensure_ascii=False))
+
     elif action == "hist":
-        if len(sys.argv) < 5:
-            print(json.dumps({"error": "Missing instrument, start_time, end_time arguments for hist"}))
-            sys.exit(1)
-        instrument = sys.argv
-        start_time = sys.argv
-        end_time = sys.argv
-        
-        # 将 YYYY-MM-DD 格式转换为 YYYYMMDD
-        start_formatted = start_time.replace("-", "")
-        end_formatted = end_time.replace("-", "")
-        
-        result = get_historical_data(instrument, start_formatted, end_formatted)
-        print(json.dumps(result))
-    else:
-        print(json.dumps({"error": "Invalid action. Use 'quote' or 'hist'"}))
-        sys.exit(1)
+        instrument = sys.argv[2]
+        start = sys.argv[3]
+        end = sys.argv[4]
+        res = get_historical_data(instrument, start, end)
+        print(json.dumps(res, ensure_ascii=False))
