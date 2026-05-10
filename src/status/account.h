@@ -27,7 +27,7 @@ public:
 
 private:
     Account() = default;
-    mutable std::mutex mtx_;
+    mutable std::recursive_mutex mtx_;
     std::unordered_map<std::string, Order> orders_;
     std::unordered_map<std::string, Position> positions_;
     AccountFund fund_;

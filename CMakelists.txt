@@ -9,36 +9,18 @@ if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     add_compile_options(/wd4828)
 endif()
-
-# RapidJSON 路径
 set(RapidJSON_INCLUDE_DIR "C:/Users/naiyu/source/repos/uy1243/demo/vcpkg_installed/vcpkg/pkgs/rapidjson_x64-windows/include")
-
-# MySQL Connector/C++ 旧 API 路径（注意：这里指向旧版本的安装目录）
-# 旧版本通常安装在 MySQL Connector C++ 8.x 或更早版本
-set(MYSQL_OLD_INCLUDE_DIR "C:/Program Files/MySQL/MySQL Connector C++ 8.0/include")
-set(MYSQL_OLD_LIB_DIR "C:/Program Files/MySQL/MySQL Connector C++ 8.0/lib64/vs14")
-
-# 如果旧版本不存在，尝试使用 MySQL Connector/C 的路径（包含旧 API 头文件）
-if(NOT EXISTS ${MYSQL_OLD_INCLUDE_DIR})
-    # 使用 MySQL Connector/C 的路径
-    set(MYSQL_OLD_INCLUDE_DIR "C:/Program Files/MySQL/MySQL Connector C 6.1/include")
-    set(MYSQL_OLD_LIB_DIR "C:/Program Files/MySQL/MySQL Connector C 6.1/lib")
-    message(STATUS "Using MySQL Connector/C path for old API")
-endif()
+#set(RapidJSON_INCLUDE_DIR "D:/hil33/vcpkg/packages/rapidjson_x64-windows/include")
+set(MYSQL_PATH "C:/Program Files/MySQL/MySQL Connector C++ 9.7")
 
 add_definitions(-DCURL_STATICLIB)
-
-# 🔥 头文件路径
-include_directories(
-    ${MYSQL_OLD_INCLUDE_DIR}
-    ${RapidJSON_INCLUDE_DIR}
-)
+# 🔥 头文件路径（解决 C1083 错误）
+include_directories(${MYSQL_PATH}/include
+${RapidJSON_INCLUDE_DIR})
 
 # 🔥 库路径
-link_directories(
-    ${MYSQL_OLD_LIB_DIR}
-)
-
+link_directories(${MYSQL_PATH}/lib64
+                ${MYSQL_PATH}/lib64/vs14/)
 # 头文件目录
 include_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows
@@ -53,80 +35,53 @@ link_directories(
     ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows
 )
 
+link_directories(${MYSQL_PATH}/lib64
+                ${MYSQL_PATH}/lib64/vs14/)
 # 生成可执行文件
 add_executable(trader
     src/main.cpp
-    "src/status/account.cpp"
-    src/strategy/strategy3.cpp
-    src/backtest/backtest_engine.cpp
-    "src/datasource/akshare/akshare_data_source.cpp"
-    src/utils/logger.cpp 
-    "src/datasource/mysql_db/db.hpp" 
-    "src/datasource/market_types.h"
-    "src/datasource/market_cache.h" 
-    "src/datasource/market_cache.cpp"
-    "src/datasource/https/dce_data_source.h" 
-    "src/datasource/https/dce_data_source.cpp"
-    "src/datasource/https/czce_data_source.h" 
-    "src/datasource/sina/sina_data_source.h"
-    "src/datasource/sina/sina_data_source.cpp" 
-    "src/datasource/market_service.h" 
-    "src/datasource/market_service.cpp" 
-    "src/strategy/event_system.h" 
-    "src/utils/trading_hours.h" 
-    "src/utils/trading_hours.cpp" 
-    "src/datasource/mysql_db/mysql_data_source.h" 
-    "src/datasource/mysql_db/mysql_data_source.cpp" 
-    "src/common/types.h" 
-    "src/datasource/trader_interface.h"
-    "src/datasource/gui/win32_auto.h" 
-    "src/datasource/gui/win32_auto.cpp" 
-    "src/backtest/mock_data_source.h" 
-    "src/backtest/mock_trader.h"
-)
+  "src/status/account.cpp"
+src/strategy/strategy3.cpp
+src/backtest/backtest_engine.cpp
+src/datasource/persistent/tick_data_persister.cpp
+src/datasource/mysql_db/mysql_data_source.cpp
+"src/datasource/akshare/akshare_data_source.cpp"
+src/utils/logger.cpp "src/datasource/market_types.h"
+"src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
+"src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"
+"src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h"
+"src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" 
+"src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" 
+"src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h"
+"src/datasource/gui/win32_auto.h" "src/datasource/gui/win32_auto.cpp" "src/backtest/mock_data_source.h" "src/backtest/mock_trader.h")
 
 target_link_libraries(trader PRIVATE 
     thosttraderapi_se
     thostmduserapi_se
-    mysqlcppconn    # 旧 API 的库
-    # mysqlcppconnx  # 移除 X DevAPI 库
+      mysqlcppconn
 )
 
 add_executable(backtest
     src/backtest_main.cpp
-    "src/status/account.cpp"
-    src/strategy/strategy3.cpp
-    src/backtest/backtest_engine.cpp
-    src/utils/logger.cpp 
-    "src/datasource/mysql_db/db.hpp" 
-    "src/datasource/market_types.h"
-    "src/datasource/market_cache.h" 
-    "src/datasource/market_cache.cpp"
-    "src/datasource/https/dce_data_source.h" 
-    "src/datasource/https/dce_data_source.cpp"
-    "src/datasource/https/czce_data_source.h" 
-    "src/datasource/sina/sina_data_source.h"
-    "src/datasource/sina/sina_data_source.cpp" 
-    "src/datasource/market_service.h" 
-    "src/datasource/market_service.cpp" 
-    "src/strategy/event_system.h" 
-    "src/utils/trading_hours.h" 
-    "src/utils/trading_hours.cpp" 
-    "src/datasource/mysql_db/mysql_data_source.h" 
-    "src/datasource/mysql_db/mysql_data_source.cpp" 
-    "src/common/types.h" 
-    "src/datasource/trader_interface.h"
-    "src/datasource/gui/win32_auto.h" 
-    "src/datasource/gui/win32_auto.cpp" 
-    "src/backtest/mock_data_source.h" 
-    "src/backtest/mock_trader.h"
-)
+  "src/status/account.cpp"
+src/strategy/strategy3.cpp
+src/backtest/backtest_engine.cpp
+src/datasource/persistent/tick_data_persister.cpp
+src/utils/logger.cpp "src/datasource/market_types.h"
+"src/datasource/market_cache.h" "src/datasource/market_cache.cpp"
+"src/datasource/https/dce_data_source.h" "src/datasource/https/dce_data_source.cpp"
+"src/datasource/https/czce_data_source.h" "src/datasource/sina/sina_data_source.h"
+"src/datasource/sina/sina_data_source.cpp" "src/datasource/market_service.h" "src/datasource/market_service.cpp" 
+"src/strategy/event_system.h" "src/utils/trading_hours.h" "src/utils/trading_hours.cpp" "src/datasource/mysql_db/mysql_data_source.h" 
+"src/datasource/mysql_db/mysql_data_source.cpp" "src/common/types.h" "src/datasource/trader_interface.h"
+"src/datasource/gui/win32_auto.h" "src/datasource/gui/win32_auto.cpp" "src/backtest/mock_data_source.h" "src/backtest/mock_trader.h")
 
 target_link_libraries(backtest PRIVATE 
-    mysqlcppconn    # 旧 API 的库
-    # mysqlcppconnx  # 移除 X DevAPI 库
+      mysqlcppconn
 )
-
+# add_subdirectory(src/datasource)
+# add_subdirectory(src/strategy)
+add_subdirectory(src/datasource/gui)
 # ====================== 关键修复：只在 Linux 链接 pthread 和 dl ======================
 if(UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
@@ -136,32 +91,32 @@ if(UNIX AND NOT APPLE)
     )
 endif()
 
-# Windows 自动复制 DLL 到运行目录
+# Windows 自动复制 CTP DLL 到运行目录
 if(MSVC)
-    # 设置 MySQL 旧 API 的 DLL 目录
-    set(MYSQL_BIN_DIR "${MYSQL_OLD_LIB_DIR}")
-    
-    # 旧 API 的 DLL 文件名
-    set(MYSQL_OLD_DLL "mysqlcppconn.dll")
-    
+
+set(MYSQL_BIN_DIR "${MYSQL_PATH}/lib64")
+
     set(OUT_DIR "$<TARGET_FILE_DIR:trader>")
-    
-    # 复制旧 API 的 DLL
+
     add_custom_command(TARGET trader POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/${MYSQL_OLD_DLL}" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${OUT_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/src/datasource/akshare/akshare_worker.py" ${OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/src/config/config.json" ${OUT_DIR}
     )
-    
+
+
     set(TEST_OUT_DIR "$<TARGET_FILE_DIR:backtest>")
-    
+
     add_custom_command(TARGET backtest POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/${MYSQL_OLD_DLL}" ${TEST_OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/mysqlcppconn-10-vs14.dll" ${TEST_OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libcrypto-3-x64.dll" ${TEST_OUT_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MYSQL_BIN_DIR}/libssl-3-x64.dll" ${TEST_OUT_DIR}
     )
-    
-    # 复制 CTP DLL
+
     file(COPY
         ${PROJECT_SOURCE_DIR}/api/20260225_traderapi64_se_windows/thosttraderapi_se.dll
         ${PROJECT_SOURCE_DIR}/api/20260225_mduserapi64_se_windows/thostmduserapi_se.dll
-        DESTINATION ${CMAKE_BINARY_DIR}
-    )
+        DESTINATION ${CMAKE_BINARY_DIR})
 endif()

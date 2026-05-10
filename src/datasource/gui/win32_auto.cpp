@@ -37,104 +37,6 @@ Win32Auto::~Win32Auto() {
     }
 }
 
-HWND Win32Auto::find_window(const std::wstring& title) {
-    return FindWindowW(NULL, title.c_str());
-}
-
-HWND Win32Auto::wait_window(const std::wstring& title, int timeout_ms) {
-    HWND hwnd = NULL;
-    int waited = 0;
-    while (waited < timeout_ms) {
-        hwnd = find_window(title);
-        if (hwnd) return hwnd;
-        Sleep(500);
-        waited += 500;
-    }
-    return NULL;
-}
-
-HWND Win32Auto::find_child(HWND parent, const std::wstring& class_name, const std::wstring& caption) {
-    return FindWindowExW(parent, NULL, class_name.c_str(), caption.c_str());
-}
-
-HWND Win32Auto::find_button(HWND parent, const std::wstring& btn_text) {
-    return find_child(parent, L"Button", btn_text);
-}
-
-HWND Win32Auto::find_txbutton(HWND parent, const std::wstring& btn_text) {
-    HWND cur = NULL;
-    while (true) {
-        cur = FindWindowExW(parent, cur, L"TXPButton", NULL);
-        if (!cur) break;
-        if (get_text(cur) == btn_text) {
-            return cur;
-        }
-    }
-    return NULL;
-}
-
-HWND Win32Auto::find_txbutton_by_index(HWND parent, int index) {
-    HWND cur = NULL;
-    for (int i = 0; i <= index; ++i) {
-        cur = FindWindowExW(parent, cur, L"TXPButton", NULL);
-        if (!cur) break;
-    }
-    return cur;
-}
-
-POINT Win32Auto::get_control_pos(HWND parent, HWND control) {
-    RECT rc;
-    GetWindowRect(control, &rc);
-    POINT pt = { rc.left, rc.top };
-    ScreenToClient(parent, &pt);
-    return pt;
-}
-
-HWND Win32Auto::find_bottom_txbutton(HWND parent) {
-    HWND best = NULL;
-    int max_y = -1;
-
-    HWND cur = NULL;
-    while (true) {
-        cur = FindWindowExW(parent, cur, L"TXPButton", NULL);
-        if (!cur) break;
-
-        POINT pos = get_control_pos(parent, cur);
-        if (pos.y > max_y) {
-            max_y = pos.y;
-            best = cur;
-        }
-    }
-    return best;
-}
-
-HWND Win32Auto::find_edit(HWND parent, int index) {
-    HWND cur = NULL;
-    for (int i = 0; i <= index; ++i) {
-        cur = FindWindowExW(parent, cur, L"Edit", NULL);
-        if (!cur) break;
-    }
-    return cur;
-}
-
-void Win32Auto::set_text(HWND hwnd, const std::wstring& text) {
-    SendMessageW(hwnd, WM_SETTEXT, 0, (LPARAM)text.c_str());
-}
-
-std::wstring Win32Auto::get_text(HWND hwnd) {
-    wchar_t buf[256] = { 0 };
-    SendMessageW(hwnd, WM_GETTEXT, 256, (LPARAM)buf);
-    return buf;
-}
-
-void Win32Auto::click(HWND btn) {
-    if (!btn) return;
-    SendMessageW(btn, BM_CLICK, 0, 0);
-    Sleep(300);
-}
-
-
-
 void Win32Auto::initialize(EventSystem* event_system) {
     event_system_ = event_system;
 }
@@ -238,19 +140,24 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     return TRUE;
 }
 
-int main()
-{
-    std::cout << "=== 开始枚举所有顶层窗口 ===" << std::endl;
+std::vector<Order> Win32Auto::getAllOrders() const {
+    // 这里你需要调用你的 API 获取订单列表，并转换为 std::vector<Order>
+    // 这是一个示例实现，实际情况取决于你的 API 返回的数据结构
+    std::vector<Order> orders;
+    // ... 调用 API 获取订单数据并填充 orders ...
+	return orders;
+}
+std::vector<Position> Win32Auto::getAllPositions() const {
+	return std::vector<Position>(); // 这里你需要调用你的 API 获取持仓列表，并转换为 std::vector<Position>
+}
+AccountFund Win32Auto::getFundInfo() const {
+	return AccountFund(); // 这里你需要调用你的 API 获取资金信息，并转换为 AccountFund
+}
+
+bool Win32Auto::findWindowAndInitializeApi() {
+    // 枚举所有窗口，打印标题，帮助你找到目标窗口
     EnumWindows(EnumWindowsProc, 0);
-
-    HWND hd = Win32Auto::find_window(L"Vector CANdb++ Editor - C:\Users\Administrator\Desktop\ADASDBC_receive.dbc - [Overall View]");
-    if(!hd){
-        std::cout << "未找到窗口" << std::endl;
-	}
-    else{
-        std::cout << "找到窗口: " << hd << std::endl;
-    }
-    system("pause");
-
-    return 0;
+    // 这里你需要添加逻辑来查找特定窗口，并根据窗口信息初始化 API
+    // 例如，你可以使用 FindWindow 或其他方法来定位窗口，并获取必要的句柄或信息
+    return true; // 返回 true 表示成功找到并初始化 API
 }

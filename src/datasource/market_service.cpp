@@ -13,6 +13,24 @@ MarketService& MarketService::Instance() {
 
 void MarketService::initialize(EventSystem* event_sys) {
     event_system_ = event_sys;
+    persister_ = std::make_unique<TickDataPersister>(
+        "localhost", 3306, "root", "Yu646010", "black"
+    );
+    persister_->initialize();
+}
+
+void MarketService::onTickReceived(const TickData& tick) {
+    // 接收到 Tick 数据后，保存到数据库
+    if (persister_ && persister_->isConnected()) {
+        persister_->save(tick);
+    }
+}
+
+void MarketService::onTicksReceived(const std::vector<TickData>& ticks) {
+    // 批量接收数据
+    if (persister_ && persister_->isConnected()) {
+        persister_->saveBatch(ticks);
+    }
 }
 
 void MarketService::addDataSource(std::unique_ptr<IDataSource> source) {
@@ -73,7 +91,7 @@ void MarketService::run_loop() {
                     auto ticks = source->fetchQuotes("M2609"); // 传入关注的品种
                     if (!ticks.empty()) {
                         // 将Sina数据保存到MySQL
-                        bool success = mysql_ds.saveTickDataBatchToDB(sina_ticks);
+                        bool success = persister_->saveBatch(ticks);
                         if (success) {
                             std::cout << "数据已成功保存到MySQL" << std::endl;
                         }

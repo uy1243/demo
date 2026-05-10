@@ -177,7 +177,7 @@ int main() {
     try {
         auto mysql_source = std::make_unique<MysqlDataSource>(
             "localhost",  // MySQL 主机
-            33060,         // MySQL 端口
+            3306,         // MySQL 端口
             "root",        // 用户名
             "Yu646010",    // 密码
             "black"        // 数据库名

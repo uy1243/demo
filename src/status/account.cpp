@@ -20,7 +20,7 @@ std::string Account::genOrderId() {
 }
 
 Position* Account::getPosition(const std::string& inst, Direction dir) {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     std::string key = inst + (dir == Direction::LONG ? "_L" : "_S");
     if (positions_.find(key) == positions_.end()) {
         Position p;
@@ -32,14 +32,14 @@ Position* Account::getPosition(const std::string& inst, Direction dir) {
 }
 
 void Account::updateFund(double fee, double frozen_delta) {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     fund_.fee += fee;
     fund_.frozen += frozen_delta;
     fund_.available = fund_.total_asset - fund_.frozen - fund_.position_pnl;
 }
 
 void Account::updatePosition(const std::string& inst, Direction dir, int vol, double price) {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     Position* pos = getPosition(inst, dir);
     int old_vol = pos->volume;
     double old_cost = pos->avg_price * old_vol;
@@ -60,7 +60,7 @@ std::string Account::execute_order(const std::string& inst, Direction dir, doubl
 
     // 创建本地订单记录
     {
-        std::lock_guard<std::mutex> lock(mtx_);
+        std::lock_guard<std::recursive_mutex> lock(mtx_);
         Order o;
         o.order_id = local_order_id;
         o.instrument = inst;
@@ -83,7 +83,7 @@ std::string Account::execute_order(const std::string& inst, Direction dir, doubl
 
     if (resp.status == OrderStatus::REJECTED) {
         // 如果本地就失败，更新状态
-        std::lock_guard<std::mutex> lock(mtx_);
+        std::lock_guard<std::recursive_mutex> lock(mtx_);
         auto it = orders_.find(local_order_id);
         if (it != orders_.end()) {
             it->second.status = OrderStatus::REJECTED;
@@ -108,7 +108,7 @@ void Account::execute_cancel(const std::string& order_id) {
 }
 
 void Account::on_order_update(const OrderUpdateEvent& event) {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
 
     // 查找本地订单
     auto it = orders_.find(event.order_id);
@@ -142,20 +142,20 @@ void Account::on_order_update(const OrderUpdateEvent& event) {
 }
 
 std::vector<Order> Account::getAllOrders() const {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     std::vector<Order> res;
     for (const auto& p : orders_) res.push_back(p.second);
     return res;
 }
 
 std::vector<Position> Account::getAllPositions() const {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     std::vector<Position> res;
     for (const auto& p : positions_) res.push_back(p.second);
     return res;
 }
 
 AccountFund Account::getFundInfo() const {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     return fund_;
 }

@@ -1,4 +1,4 @@
-// common/types.h
+﻿// common/types.h
 #pragma once
 #include <string>
 #include <vector>

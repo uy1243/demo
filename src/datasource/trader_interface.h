@@ -39,5 +39,8 @@ public:
     virtual void stop() = 0;
     virtual std::string getName() const = 0; // API 名称
     virtual void initialize(EventSystem* event_system) = 0;
+    virtual std::vector<Order> getAllOrders() const = 0;
+    virtual std::vector<Position> getAllPositions() const = 0;
+    virtual AccountFund getFundInfo() const = 0;
 
 };

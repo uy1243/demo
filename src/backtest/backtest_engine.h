@@ -97,6 +97,15 @@ private:
         void start() override {}
         void stop() override {}
         std::string getName() const override { return "SIMULATED"; }
+        virtual std::vector<Order> getAllOrders() const {
+            return {}; // 这里需要实现从 CTP API 获取订单信息的逻辑
+        }
+        virtual std::vector<Position> getAllPositions() const {
+            return {}; // 这里需要实现从 CTP API 获取持仓信息的逻辑
+        }
+        virtual AccountFund getFundInfo() const {
+            return {}; // 这里需要实现从 CTP API 获取资金信息的逻辑
+        }
 
     private:
         BacktestEngine* engine_;

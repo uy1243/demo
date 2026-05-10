@@ -1,4 +1,4 @@
 add_executable(gui_exe
-    "main.cpp"
-    
+    "winmain.cpp"
+    win32_util.cpp
     )

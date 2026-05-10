@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <mysql_connection.h>
-#include <mysql_driver.h>
-#include <cppconn/statement.h>
-#include <cppconn/prepared_statement.h>
-#include <cppconn/resultset.h>
-#include <cppconn/exception.h>
+#include <jdbc/mysql_connection.h>
+#include <jdbc/mysql_driver.h>
+#include <jdbc/cppconn/statement.h>
+#include <jdbc/cppconn/prepared_statement.h>
+#include <jdbc/cppconn/resultset.h>
+#include <jdbc/cppconn/exception.h>
 
 class MysqlDataSource : public IDataSource {
 public:
@@ -27,10 +27,6 @@ public:
         const std::string& start_time,
         const std::string& end_time
     );
-
-    bool saveTickDataToDB(const TickData& tick);
-    bool saveTickDataBatchToDB(const std::vector<TickData>& ticks);
-    bool createTickDataTable();  // 创建用于存储tick数据的表
 
 private:
     std::string host_;

@@ -9,6 +9,7 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include "persistent/tick_data_persister.h"
 
 class MarketService {
 public:
@@ -24,6 +25,7 @@ public:
 private:
     MarketService() = default;
     std::vector<std::unique_ptr<IDataSource>> sources_;
+    std::unique_ptr<TickDataPersister> persister_;
     MarketCache cache_;
     EventSystem* event_system_ = nullptr;
     std::atomic<bool> running_{ false };
@@ -31,4 +33,6 @@ private:
 
     void run_loop();
     bool shouldFetchData(); // 新增：判断是否应该获取数据
+    void onTickReceived(const TickData& tick);
+    void onTicksReceived(const std::vector<TickData>& ticks);
 };

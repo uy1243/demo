@@ -89,6 +89,15 @@ public:
         std::cout << "[MockTrader] 模拟交易接口已停止" << std::endl;
     }
 
+    virtual std::vector<Order> getAllOrders() const {
+        return {}; // 这里需要实现从 CTP API 获取订单信息的逻辑
+    }
+    virtual std::vector<Position> getAllPositions() const {
+        return {}; // 这里需要实现从 CTP API 获取持仓信息的逻辑
+    }
+    virtual AccountFund getFundInfo() const {
+        return {}; // 这里需要实现从 CTP API 获取资金信息的逻辑
+    }
 private:
     EventSystem* event_system_ = nullptr;
     std::random_device rd_;

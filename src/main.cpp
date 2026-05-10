@@ -26,11 +26,18 @@
 #include <iostream>
 #include "strategy/event_system.h"
 #include <iostream>
+#include <common/auto_config.h>
 // 👇 加上这一行，解决中文乱码
 #pragma comment(linker, "/ENTRY:mainCRTStartup")
+DEFINE_BOOL(debug_mode, false, "调试模式");
+DEFINE_DOUBLE(aa, 1.20, "aa参数");
+DEFINE_STRING(config_path, "config.json", "API配置文件路径");
 
 int main(int argc, char* argv[]) {
     EventSystem event_system;
+    std::cout << "Debug: " << (FLAG_debug_mode ? "ON" : "OFF") << std::endl;
+	std::cout << "AA: " << FLAG_aa << std::endl;
+	std::cout << "Config Path: " << FLAG_config_path << std::endl;
 
     // --- 选择运行模式 ---
     if (argc > 1 && std::string(argv[1]) == "backtest") {
