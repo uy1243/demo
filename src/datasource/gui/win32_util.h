@@ -40,10 +40,40 @@ public:
     // 新增：查找或启动程序
     HWND FindWindowOrStartApp(const std::string& title, const std::string& class_name, const std::string& app_path);
 
+    /**
+    * @brief 获取窗口内所有指定类名子控件的位置信息
+    * @param parent_hwnd 父窗口句柄
+    * @param class_name 类名 (例如 "TXPButton" 或 "TButton")
+    */
+    void EnumerateChildControls(HWND parent_hwnd, const std::string& class_name) const;
+
     // 菜单相关
-    bool ClickMenuItem(HWND hwnd, const std::string& menu_text);
+    bool ClickMenuItem(HWND hwnd, const std::string& menu_path);
     bool ClickMenuByIndex(HWND hwnd, int item_index);
 
+    //按钮相关
+    /**
+     * @brief 在指定父窗口下查找 TXPButton 控件
+     * @param parent_hwnd 父窗口句柄
+     * @param caption 按钮标题（可选，如果为空则查找第一个匹配类名的）
+     * @return 控件句柄，找不到返回 nullptr
+     */
+    HWND FindTXPButton(HWND parent_hwnd, const std::string& caption = "") const;
+    /**
+     * @brief 点击 TXPButton 控件
+     * @param button_hwnd 按钮句柄
+     * @return 是否成功
+     */
+    bool ClickTXPButton(HWND button_hwnd) const;
+    bool ClickAtCoordinate(HWND hwnd, int x, int y) const;
+
+    /**
+     * @brief 便捷函数：直接通过父窗口查找并点击 TXPButton
+     * @param parent_hwnd 父窗口句柄
+     * @param caption 按钮标题
+     * @return 是否成功
+     */
+    bool FindAndClickTXPButton(HWND parent_hwnd, const std::string& caption) const;
     // 输入模拟
     void MouseClick(int x, int y) const;
     void MouseRightClick(int x, int y) const;
